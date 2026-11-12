@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 
-export default function Profile() {
+export default function Profile({ profile }) {
   const fadeUp = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0 }
@@ -33,17 +33,29 @@ export default function Profile() {
           >
             <div className="w-48 h-48 rounded-full border-4 border-emas p-1 mb-4">
               <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                <span className="text-gray-400 text-sm">Foto Pria</span>
+                {profile?.groom_photo_url ? (
+                  <img 
+                    src={profile.groom_photo_url} 
+                    alt={profile.groom_full_name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-gray-400 text-sm">Foto Pria</span>
+                )}
               </div>
             </div>
-            <h3 className="text-2xl font-serif font-bold text-burgundy">[Nama Lengkap Pria]</h3>
-            <p className="font-sans text-emas font-bold mt-1">([Panggilan Pria])</p>
-            <p className="font-sans text-gray-600 mt-2 text-sm">
-              Putra dari<br/>Bapak [Nama Ayah] & Ibu [Nama Ibu]
+            <h3 className="text-2xl font-serif font-bold text-burgundy">
+              {profile?.groom_full_name || "[Nama Lengkap Pria]"}
+            </h3>
+            <p className="font-sans text-emas font-bold mt-1">
+              ({profile?.groom_nick_name || "Panggilan Pria"})
+            </p>
+            <p className="font-sans text-gray-600 mt-2 text-sm max-w-xs">
+              {profile?.groom_parents || "Putra dari Bapak [Nama Ayah] & Ibu [Nama Ibu]"}
             </p>
           </motion.div>
 
-          {/* Pemisah (Simbol '&') */}
+          {/* Pemisah */}
           <motion.div 
             className="text-4xl font-serif text-emas my-4 md:my-0"
             initial={{ scale: 0 }}
@@ -65,13 +77,25 @@ export default function Profile() {
           >
             <div className="w-48 h-48 rounded-full border-4 border-emas p-1 mb-4">
               <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                <span className="text-gray-400 text-sm">Foto Wanita</span>
+                {profile?.bride_photo_url ? (
+                  <img 
+                    src={profile.bride_photo_url} 
+                    alt={profile.bride_full_name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-gray-400 text-sm">Foto Wanita</span>
+                )}
               </div>
             </div>
-            <h3 className="text-2xl font-serif font-bold text-burgundy">[Nama Lengkap Wanita]</h3>
-            <p className="font-sans text-emas font-bold mt-1">([Panggilan Wanita])</p>
-            <p className="font-sans text-gray-600 mt-2 text-sm">
-              Putri dari<br/>Bapak [Nama Ayah] & Ibu [Nama Ibu]
+            <h3 className="text-2xl font-serif font-bold text-burgundy">
+              {profile?.bride_full_name || "[Nama Lengkap Wanita]"}
+            </h3>
+            <p className="font-sans text-emas font-bold mt-1">
+              ({profile?.bride_nick_name || "Panggilan Wanita"})
+            </p>
+            <p className="font-sans text-gray-600 mt-2 text-sm max-w-xs">
+              {profile?.bride_parents || "Putri dari Bapak [Nama Ayah] & Ibu [Nama Ibu]"}
             </p>
           </motion.div>
         </div>
