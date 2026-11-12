@@ -3,11 +3,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Copy, QrCode, CreditCard, Gift as GiftIcon } from "lucide-react";
 
-export default function Gift() {
+export default function Gift({ gift }) {
   const [activeTab, setActiveTab] = useState("qris");
   const [copied, setCopied] = useState(false);
 
   const handleCopy = (text) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -56,8 +57,12 @@ export default function Gift() {
             <AnimatePresence mode="wait">
               {activeTab === "qris" && (
                 <motion.div key="qris" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex flex-col items-center">
-                  <div className="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center mb-4 border-2 border-emas">
-                    <span className="text-gray-500 font-sans text-sm">Gambar QRIS</span>
+                  <div className="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center mb-4 border-2 border-emas overflow-hidden">
+                    {gift?.qris_image_url ? (
+                      <img src={gift.qris_image_url} alt="Kode QRIS" className="w-full h-full object-contain bg-white" />
+                    ) : (
+                      <span className="text-gray-500 font-sans text-sm">Gambar QRIS</span>
+                    )}
                   </div>
                   <p className="font-sans text-gray-600 text-sm">Scan QRIS di atas melalui aplikasi M-Banking atau E-Wallet Anda.</p>
                 </motion.div>
@@ -65,10 +70,17 @@ export default function Gift() {
 
               {activeTab === "transfer" && (
                 <motion.div key="transfer" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                  <h3 className="text-xl font-serif text-burgundy mb-2">[Nama Bank]</h3>
-                  <p className="text-3xl font-sans font-bold tracking-widest text-gray-800 mb-2">1234 5678 9012</p>
-                  <p className="font-sans text-gray-500 mb-6">a.n [Pemilik Rekening]</p>
-                  <button onClick={() => handleCopy("123456789012")} className="inline-flex items-center gap-2 px-6 py-2 bg-emas text-burgundy font-bold rounded-full hover:bg-yellow-500 transition font-sans">
+                  <h3 className="text-xl font-serif text-burgundy mb-2">{gift?.bank_name || "[Nama Bank]"}</h3>
+                  <p className="text-3xl font-sans font-bold tracking-widest text-gray-800 mb-2">
+                    {gift?.account_number || "1234 5678 9012"}
+                  </p>
+                  <p className="font-sans text-gray-500 mb-6">
+                    a.n {gift?.account_owner || "[Pemilik Rekening]"}
+                  </p>
+                  <button 
+                    onClick={() => handleCopy(gift?.account_number || "123456789012")} 
+                    className="inline-flex items-center gap-2 px-6 py-2 bg-emas text-burgundy font-bold rounded-full hover:bg-yellow-500 transition font-sans"
+                  >
                     <Copy size={16} /> {copied ? "Berhasil Disalin!" : "Salin Nomor Rekening"}
                   </button>
                 </motion.div>
@@ -77,11 +89,16 @@ export default function Gift() {
               {activeTab === "fisik" && (
                 <motion.div key="fisik" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                   <h3 className="text-xl font-serif text-burgundy mb-2">Alamat Pengiriman</h3>
-                  <p className="font-bold text-gray-800 font-sans mb-1">Penerima: [Nama Penerima]</p>
-                  <p className="font-sans text-gray-600 mb-6 max-w-sm mx-auto leading-relaxed">
-                    Jl. Contoh Alamat Pengiriman Hadiah No. 123, Kelurahan, Kecamatan, Kota, Provinsi, 12345
+                  <p className="font-bold text-gray-800 font-sans mb-1">
+                    Penerima: {gift?.receiver_name || "[Nama Penerima]"}
                   </p>
-                  <button onClick={() => handleCopy("Jl. Contoh Alamat Pengiriman Hadiah No. 123")} className="inline-flex items-center gap-2 px-6 py-2 bg-emas text-burgundy font-bold rounded-full hover:bg-yellow-500 transition font-sans">
+                  <p className="font-sans text-gray-600 mb-6 max-w-sm mx-auto leading-relaxed">
+                    {gift?.receiver_address || "Jl. Contoh Alamat Pengiriman Hadiah No. 123, Kelurahan, Kecamatan, Kota, Provinsi, 12345"}
+                  </p>
+                  <button 
+                    onClick={() => handleCopy(gift?.receiver_address || "Jl. Contoh Alamat Pengiriman Hadiah No. 123")} 
+                    className="inline-flex items-center gap-2 px-6 py-2 bg-emas text-burgundy font-bold rounded-full hover:bg-yellow-500 transition font-sans"
+                  >
                     <Copy size={16} /> {copied ? "Berhasil Disalin!" : "Salin Alamat"}
                   </button>
                 </motion.div>
