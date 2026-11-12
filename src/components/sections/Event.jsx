@@ -3,12 +3,26 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MapPin } from "lucide-react";
 
-export default function Event() {
+export default function Event({ events }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
+  const akad = events?.find((e) => e.event_type === "akad") || events?.[0];
+  const resepsi = events?.find((e) => e.event_type === "resepsi") || events?.[1];
+
+  const formatIndoDate = (dateStr) => {
+    if (!dateStr) return "Jumat, 01 Januari 2027";
+    return new Date(dateStr).toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   useEffect(() => {
-    // Tanggal target acara (Akad Nikah)
-    const targetDate = new Date("2027-01-01T08:00:00").getTime();
+    // Hitung mundur mengikuti tanggal akad dari database
+    const targetStr = akad?.event_date ? `${akad.event_date}T08:00:00` : "2027-01-01T08:00:00";
+    const targetDate = new Date(targetStr).getTime();
 
     const interval = setInterval(() => {
       const now = new Date().getTime();
@@ -29,7 +43,7 @@ export default function Event() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [akad?.event_date]);
 
   const fadeUp = {
     hidden: { opacity: 0, y: 30 },
@@ -62,7 +76,9 @@ export default function Event() {
           {Object.entries(timeLeft).map(([unit, value]) => (
             <div key={unit} className="flex flex-col items-center bg-white border border-emas/50 rounded-lg p-3 w-20 shadow-sm">
               <span className="text-2xl font-serif font-bold text-burgundy">{value}</span>
-              <span className="text-xs font-sans text-gray-500 uppercase">{unit === 'days' ? 'Hari' : unit === 'hours' ? 'Jam' : unit === 'minutes' ? 'Menit' : 'Detik'}</span>
+              <span className="text-xs font-sans text-gray-500 uppercase">
+                {unit === 'days' ? 'Hari' : unit === 'hours' ? 'Jam' : unit === 'minutes' ? 'Menit' : 'Detik'}
+              </span>
             </div>
           ))}
         </motion.div>
@@ -79,14 +95,14 @@ export default function Event() {
           >
             <div className="absolute top-0 left-0 w-full h-2 bg-emas"></div>
             <h3 className="text-2xl font-serif text-burgundy mb-2">Akad Nikah</h3>
-            <p className="font-bold text-gray-700 font-sans mb-1">Jumat, 01 Januari 2027</p>
-            <p className="text-gray-600 mb-4 font-sans">08.00 WIB - Selesai</p>
+            <p className="font-bold text-gray-700 font-sans mb-1">{formatIndoDate(akad?.event_date)}</p>
+            <p className="text-gray-600 mb-4 font-sans">{akad?.event_time || "08.00 WIB - Selesai"}</p>
             <p className="text-gray-700 font-sans mb-6">
-              <strong>[Nama Lokasi Akad]</strong><br/>
-              Jl. Contoh Alamat Akad No. 123, Kota, Provinsi
+              <strong>{akad?.location_name || "[Nama Lokasi Akad]"}</strong><br/>
+              {akad?.location_address || "Jl. Contoh Alamat Akad No. 123, Kota, Provinsi"}
             </p>
             <a 
-              href="https://maps.google.com" 
+              href={akad?.maps_url || "https://maps.google.com"} 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-2 bg-burgundy text-white rounded-full text-sm font-sans hover:bg-red-900 transition"
@@ -106,14 +122,14 @@ export default function Event() {
           >
             <div className="absolute top-0 left-0 w-full h-2 bg-emas"></div>
             <h3 className="text-2xl font-serif text-burgundy mb-2">Resepsi</h3>
-            <p className="font-bold text-gray-700 font-sans mb-1">Jumat, 01 Januari 2027</p>
-            <p className="text-gray-600 mb-4 font-sans">11.00 WIB - 15.00 WIB</p>
+            <p className="font-bold text-gray-700 font-sans mb-1">{formatIndoDate(resepsi?.event_date)}</p>
+            <p className="text-gray-600 mb-4 font-sans">{resepsi?.event_time || "11.00 WIB - 15.00 WIB"}</p>
             <p className="text-gray-700 font-sans mb-6">
-              <strong>[Nama Lokasi Resepsi]</strong><br/>
-              Jl. Contoh Alamat Resepsi No. 456, Kota, Provinsi
+              <strong>{resepsi?.location_name || "[Nama Lokasi Resepsi]"}</strong><br/>
+              {resepsi?.location_address || "Jl. Contoh Alamat Resepsi No. 456, Kota, Provinsi"}
             </p>
             <a 
-              href="https://maps.google.com" 
+              href={resepsi?.maps_url || "https://maps.google.com"} 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-2 bg-burgundy text-white rounded-full text-sm font-sans hover:bg-red-900 transition"
