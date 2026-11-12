@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminLayout({ children }) {
@@ -9,7 +10,6 @@ export default function AdminLayout({ children }) {
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Rute publik di dalam folder /admin yang tidak memakai sidebar
   const isAuthPage = pathname === "/admin/login" || pathname === "/admin/reset-password";
 
   useEffect(() => {
@@ -54,7 +54,6 @@ export default function AdminLayout({ children }) {
     );
   }
 
-  // Tampilkan halaman login & reset password secara penuh tanpa sidebar
   if (isAuthPage) {
     return <>{children}</>;
   }
@@ -71,44 +70,44 @@ export default function AdminLayout({ children }) {
           <h2 className="text-2xl font-serif text-emas mb-8 font-bold">Admin Panel</h2>
           
           <nav className="flex flex-col gap-3 font-sans text-sm">
-            <a 
+            <Link 
               href="/admin" 
               className={`p-3 rounded-lg transition-colors ${
                 pathname === "/admin" ? "bg-white/10 text-emas font-bold" : "hover:bg-white/5"
               }`}
             >
               Dashboard
-            </a>
-            <a 
+            </Link>
+            <Link 
               href="/admin/tamu" 
               className={`p-3 rounded-lg transition-colors ${
                 pathname === "/admin/tamu" ? "bg-white/10 text-emas font-bold" : "hover:bg-white/5"
               }`}
             >
               Kelola Tamu (RSVP)
-            </a>
-            <a 
+            </Link>
+            <Link 
               href="/admin/pengaturan" 
               className={`p-3 rounded-lg transition-colors ${
                 pathname === "/admin/pengaturan" ? "bg-white/10 text-emas font-bold" : "hover:bg-white/5"
               }`}
             >
               Pengaturan Undangan
-            </a>
+            </Link>
           </nav>
         </div>
 
         <div className="mt-8">
           <hr className="border-emas/20 my-4" />
           <div className="flex flex-col gap-2 font-sans text-sm">
-            <a 
+            <Link 
               href="/" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="p-3 rounded-lg hover:bg-white/5 transition-colors opacity-80"
             >
               ← Lihat Undangan
-            </a>
+            </Link>
             <button
               onClick={handleLogout}
               className="w-full text-left p-3 rounded-lg text-red-300 hover:bg-red-500/20 transition-colors font-semibold"
