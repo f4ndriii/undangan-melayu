@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 export default function KelolaTamu() {
@@ -7,11 +8,25 @@ export default function KelolaTamu() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
+  const [coupleNames, setCoupleNames] = useState("Mempelai Pria & Wanita");
 
-  // Mengambil data tamu saat halaman dimuat
   useEffect(() => {
     fetchGuests();
+    fetchCoupleNames();
   }, []);
+
+  const fetchCoupleNames = async () => {
+    const { data } = await supabase
+      .from("profiles_config")
+      .select("groom_nick_name, bride_nick_name")
+      .limit(1)
+      .maybeSingle();
+
+    if (data?.groom_nick_name && data?.bride_nick_name) {
+      setCoupleNames(`${data.groom_nick_name} & ${data.bride_nick_name}`);
+    }
+  };
 
   const fetchGuests = async () => {
     const { data, error } = await supabase
@@ -22,22 +37,49 @@ export default function KelolaTamu() {
     if (!error && data) setGuests(data);
   };
 
+  // Fungsi membuat URL personal tiap tamu
+  const generateInviteLink = (guestName) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return `${origin}/?to=${encodeURIComponent(guestName)}`;
+  };
+
+  // Fungsi Salin Link Undangan
+  const handleCopyLink = (guest) => {
+    const link = generateInviteLink(guest.name);
+    navigator.clipboard.writeText(link);
+    setCopiedId(guest.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Fungsi Kirim Langsung ke WhatsApp
+  const handleShareWA = (guest) => {
+    const link = generateInviteLink(guest.name);
+    const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKepada Yth.\n*${guest.name}*\n\nTanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i untuk hadir memberikan doa restu pada acara pernikahan kami:\n\n*${coupleNames}*\n\nBerikut tautan undangan digital kami:\n${link}\n\nMerupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir.\n\nWassalamu'alaikum Warahmatullahi Wabarakatuh.`;
+    
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
+
   // Fungsi Tambah Tamu
   const handleAddGuest = async (e) => {
     e.preventDefault();
-    if (!name) return alert("Nama tamu wajib diisi!");
+    if (!name.trim()) return alert("Nama tamu wajib diisi!");
     
     setIsLoading(true);
     const { error } = await supabase
       .from("guests")
-      .insert([{ name, address }]);
+      .insert([{ 
+        name: name.trim(), 
+        address: address.trim() || "-",
+        is_attending: true // Default hadir saat didaftarkan admin
+      }]);
 
     if (error) {
-      alert("Gagal menambahkan tamu.");
+      alert("Gagal menambahkan tamu: " + error.message);
     } else {
       setName("");
       setAddress("");
-      fetchGuests(); // Refresh data di tabel
+      fetchGuests();
     }
     setIsLoading(false);
   };
@@ -54,7 +96,7 @@ export default function KelolaTamu() {
     if (error) {
       alert("Gagal menghapus tamu.");
     } else {
-      fetchGuests(); // Refresh data di tabel
+      fetchGuests();
     }
   };
 
@@ -62,9 +104,9 @@ export default function KelolaTamu() {
     <div className="p-8 max-w-6xl mx-auto font-sans text-gray-800">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-serif text-burgundy font-bold">Kelola Tamu</h1>
-        <a href="/admin" className="text-sm font-bold text-emas hover:underline">
+        <Link href="/admin" className="text-sm font-bold text-emas hover:underline">
           ← Kembali ke Dashboard
-        </a>
+        </Link>
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
@@ -75,9 +117,10 @@ export default function KelolaTamu() {
             <h2 className="text-xl font-serif text-burgundy mb-4">Tambah Tamu Baru</h2>
             <form onSubmit={handleAddGuest} className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1">Nama Tamu</label>
+                <label className="block text-sm font-semibold text-gray-600 mb-1">Nama Tamu *</label>
                 <input 
                   type="text" 
+                  required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-emas"
@@ -97,9 +140,9 @@ export default function KelolaTamu() {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full bg-burgundy text-white font-bold py-2 rounded-lg hover:bg-burgundy/90 transition-colors disabled:opacity-50 mt-2"
+                className="w-full bg-burgundy text-white font-bold py-2.5 rounded-lg hover:bg-burgundy/90 transition-colors disabled:opacity-50 mt-2"
               >
-                {isLoading ? "Menyimpan..." : "Simpan Tamu"}
+                {isLoading ? "Menyimpan..." : "Simpan & Buat Link"}
               </button>
             </form>
           </div>
@@ -108,28 +151,48 @@ export default function KelolaTamu() {
         {/* Kolom Kanan: Tabel Daftar Tamu */}
         <div className="md:col-span-2">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h2 className="text-xl font-serif text-burgundy mb-4">Daftar Tamu Undangan</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-serif text-burgundy">Daftar Tamu Undangan ({guests.length})</h2>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b-2 border-gray-100">
-                    <th className="py-3 px-4 font-semibold">Nama</th>
+                  <tr className="border-b-2 border-gray-100 text-sm text-gray-600">
+                    <th className="py-3 px-4 font-semibold">Nama Tamu</th>
                     <th className="py-3 px-4 font-semibold">Alamat</th>
-                    <th className="py-3 px-4 font-semibold">Aksi</th>
+                    <th className="py-3 px-4 font-semibold text-right">Bagikan & Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {guests.length > 0 ? guests.map((guest) => (
                     <tr key={guest.id} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="py-3 px-4">{guest.name}</td>
+                      <td className="py-3 px-4 font-medium text-gray-800">{guest.name}</td>
                       <td className="py-3 px-4 text-sm text-gray-600">{guest.address || '-'}</td>
                       <td className="py-3 px-4">
-                        <button 
-                          onClick={() => handleDeleteGuest(guest.id)}
-                          className="text-red-500 hover:text-red-700 text-sm font-bold bg-red-50 px-3 py-1 rounded-md hover:bg-red-100 transition-colors"
-                        >
-                          Hapus
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyLink(guest)}
+                            className="text-xs font-bold bg-emas/20 text-burgundy px-3 py-1.5 rounded-md hover:bg-emas/40 transition-colors whitespace-nowrap"
+                          >
+                            {copiedId === guest.id ? "✓ Tersalin" : "Salin Link"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleShareWA(guest)}
+                            className="text-xs font-bold bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 transition-colors whitespace-nowrap"
+                          >
+                            Kirim WA
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteGuest(guest.id)}
+                            className="text-red-500 hover:text-red-700 text-xs font-bold bg-red-50 px-2.5 py-1.5 rounded-md hover:bg-red-100 transition-colors"
+                            title="Hapus Tamu"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )) : (
