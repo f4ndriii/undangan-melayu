@@ -1,14 +1,25 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
-export default function RSVP() {
-  const [rsvpData, setRsvpData] = useState({ name: "", address: "", is_attending: "true" });
-  const [wishData, setWishData] = useState({ sender_name: "", message: "" });
+function RSVPContent() {
+  const searchParams = useSearchParams();
+  const guestFromUrl = searchParams.get("to") || "";
+
+  const [rsvpData, setRsvpData] = useState({ name: guestFromUrl, address: "", is_attending: "true" });
+  const [wishData, setWishData] = useState({ sender_name: guestFromUrl, message: "" });
   const [wishes, setWishes] = useState([]);
   const [loading, setLoading] = useState({ rsvp: false, wish: false });
   const [status, setStatus] = useState({ rsvp: "", wish: "" });
+
+  useEffect(() => {
+    if (guestFromUrl) {
+      setRsvpData((prev) => ({ ...prev, name: prev.name || guestFromUrl }));
+      setWishData((prev) => ({ ...prev, sender_name: prev.sender_name || guestFromUrl }));
+    }
+  }, [guestFromUrl]);
 
   const fetchWishes = async () => {
     const { data, error } = await supabase
@@ -36,7 +47,7 @@ export default function RSVP() {
     
     if (error) {
       console.error("Error RSVP:", error);
-      alert("Gagal: " + error.message); // Ini akan memunculkan popup error
+      alert("Gagal: " + error.message);
     } else {
       setStatus(prev => ({ ...prev, rsvp: "Konfirmasi berhasil dikirim!" }));
       setRsvpData({ name: "", address: "", is_attending: "true" });
@@ -54,7 +65,7 @@ export default function RSVP() {
     if (!error) {
       setStatus(prev => ({ ...prev, wish: "Ucapan berhasil dikirim!" }));
       setWishData({ sender_name: "", message: "" });
-      fetchWishes(); // Refresh daftar ucapan
+      fetchWishes();
     }
   };
 
@@ -111,5 +122,13 @@ export default function RSVP() {
         </motion.div>
       </div>
     </section>
+  );
+}
+
+export default function RSVP() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center text-gray-400">Memuat form RSVP...</div>}>
+      <RSVPContent />
+    </Suspense>
   );
 }
