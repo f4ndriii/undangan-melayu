@@ -9,11 +9,14 @@ export default function AdminLayout({ children }) {
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Rute publik di dalam folder /admin yang tidak memakai sidebar
+  const isAuthPage = pathname === "/admin/login" || pathname === "/admin/reset-password";
+
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
 
-      if (!session && pathname !== "/admin/login") {
+      if (!session && !isAuthPage) {
         router.replace("/admin/login");
       } else if (session && pathname === "/admin/login") {
         router.replace("/admin");
@@ -26,7 +29,7 @@ export default function AdminLayout({ children }) {
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session && pathname !== "/admin/login") {
+      if (!session && !isAuthPage) {
         setIsAuthenticated(false);
         router.replace("/admin/login");
       } else {
@@ -36,7 +39,7 @@ export default function AdminLayout({ children }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [pathname, router]);
+  }, [pathname, router, isAuthPage]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -51,19 +54,17 @@ export default function AdminLayout({ children }) {
     );
   }
 
-  // Jika sedang membuka /admin/login, tampilkan halaman login secara penuh tanpa sidebar
-  if (pathname === "/admin/login") {
+  // Tampilkan halaman login & reset password secara penuh tanpa sidebar
+  if (isAuthPage) {
     return <>{children}</>;
   }
 
-  // Cegah konten admin muncul sebelum redirect selesai
   if (!isAuthenticated) {
     return null;
   }
 
   return (
     <div className="min-h-dvh bg-gray-50 flex flex-col md:flex-row">
-      
       {/* Sidebar / Menu Admin */}
       <aside className="w-full md:w-64 bg-burgundy text-krem p-6 shrink-0 flex flex-col justify-between">
         <div>
@@ -122,7 +123,6 @@ export default function AdminLayout({ children }) {
       <div className="flex-1 overflow-x-hidden">
         {children}
       </div>
-
     </div>
   );
 }
