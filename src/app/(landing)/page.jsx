@@ -9,95 +9,78 @@ import Gallery from "@/components/sections/Gallery";
 import LoveStory from "@/components/sections/LoveStory";
 import RSVP from "@/components/sections/RSVP";
 import Gift from "@/components/sections/Gift";
+import Footer from "@/components/sections/Footer";
 
-export default function LandingPage() {
-  const [isCoverOpened, setIsCoverOpened] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // State terpusat untuk seluruh data undangan dari Supabase
-  const [weddingData, setWeddingData] = useState({
+export default function Home() {
+  const [isOpened, setIsOpened] = useState(false);
+  const [data, setData] = useState({
     profile: null,
     events: [],
     galleries: [],
-    loveStories: [],
-    gift: null,
+    stories: [],
+    gifts: [],
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchWeddingData() {
+    const fetchAllData = async () => {
       try {
         const [
-          { data: profile },
-          { data: events },
-          { data: galleries },
-          { data: loveStories },
-          { data: gift },
+          { data: profileData },
+          { data: eventsData },
+          { data: galleriesData },
+          { data: storiesData },
+          { data: giftsData },
         ] = await Promise.all([
           supabase.from("profiles_config").select("*").limit(1).maybeSingle(),
-          supabase.from("events").select("*"),
-          supabase.from("galleries").select("*").order("display_order", { ascending: true }),
-          supabase.from("love_stories").select("*").order("display_order", { ascending: true }),
-          supabase.from("gifts_config").select("*").limit(1).maybeSingle(),
+          supabase.from("events").select("*").order("event_date", { ascending: true }),
+          supabase.from("galleries").select("*").order("sort_order", { ascending: true }),
+          supabase.from("love_stories").select("*").order("sort_order", { ascending: true }),
+          supabase.from("gifts_config").select("*"),
         ]);
 
-        setWeddingData({
-          profile: profile || null,
-          events: events || [],
-          galleries: galleries || [],
-          loveStories: loveStories || [],
-          gift: gift || null,
+        setData({
+          profile: profileData,
+          events: eventsData || [],
+          galleries: galleriesData || [],
+          stories: storiesData || [],
+          gifts: giftsData || [],
         });
-      } catch (error) {
-        console.error("Gagal memuat data undangan:", error);
+      } catch (err) {
+        console.error("Gagal memuat data undangan:", err);
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
-    fetchWeddingData();
+    fetchAllData();
   }, []);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-dvh bg-burgundy flex flex-col items-center justify-center text-krem font-serif">
-        <p className="text-xl text-emas animate-pulse">Memuat Undangan...</p>
-      </div>
-    );
-  }
-
-  const { profile, events, galleries, loveStories, gift } = weddingData;
-
   return (
-    <main className="min-h-screen bg-krem overflow-x-hidden">
-      {/* Mengirim data profile & events ke Cover */}
-      <Cover 
-        onOpen={() => setIsCoverOpened(true)} 
-        profile={profile} 
-        events={events} 
+    <main className="min-h-dvh w-full bg-[#38050D] text-[#FAF0DF] overflow-x-hidden">
+      {/* Cover berada di lapisan paling atas (z-50) */}
+      <Cover
+        onOpen={() => setIsOpened(true)}
+        profile={data.profile}
+        events={data.events}
       />
-      
-      {isCoverOpened && (
-        <div className="animate-fade-in">
-          <Intro profile={profile} />
-          <Profile profile={profile} />
-          <Event events={events} />
-          <Gallery galleries={galleries} />
-          <LoveStory stories={loveStories} />
-          <RSVP />
-          <Gift gift={gift} />
-          
-          {/* Footer Penutup Dinamis */}
-          <footer className="py-12 bg-burgundy text-krem text-center px-6">
-            <h2 className="text-2xl font-serif mb-4">Terima Kasih</h2>
-            <p className="font-sans text-sm opacity-80 max-w-xl mx-auto mb-8">
-              Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir untuk memberikan doa restu.
-            </p>
-            <p className="font-serif text-xl text-emas">
-              {profile?.groom_nick_name || "Mempelai Pria"} & {profile?.bride_nick_name || "Mempelai Wanita"}
-            </p>
-          </footer>
-        </div>
-      )}
+
+      {/* Intro selalu siap di belakang Cover agar saat Cover slide ke atas, Intro langsung terlihat mulus */}
+      <div className={!isOpened ? "h-dvh overflow-hidden" : ""}>
+        <Intro profile={data.profile} />
+
+        {isOpened && (
+          <>
+            <Profile profile={data.profile} />
+            <Event events={data.events} />
+            <Gallery galleries={data.galleries} />
+            <LoveStory stories={data.stories} />
+            <RSVP />
+            <Gift gifts={data.gifts} />
+            <Footer profile={data.profile} />
+          </>
+        )}
+      </div>
     </main>
   );
 }

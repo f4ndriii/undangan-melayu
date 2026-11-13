@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
 @theme {
+  --font-serif: var(--font-serif), Georgia, serif;
+  --font-script: var(--font-script), cursive;
+  --font-sans: var(--font-sans), sans-serif;
+  
   /* Mendefinisikan warna tema Anda */
   --color-burgundy: #800020;
   --color-krem: #F5F5DC;
