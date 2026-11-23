@@ -38,32 +38,6 @@ export default async function AdminDashboard() {
               Dashboard Admin Undangan
             </h1>
           </div>
-
-          <Link
-            href="/admin/tamu"
-            className="group relative overflow-hidden inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[#2C0409] font-serif font-semibold tracking-wider text-sm rounded-[2px] shadow-[0_6px_18px_rgba(0,0,0,0.45)] hover:shadow-[0_10px_25px_rgba(212,175,55,0.4)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-95 transition-all duration-300 self-start sm:self-auto"
-            style={{
-              background:
-                "linear-gradient(180deg, #F6E3A6 0%, #D6B142 55%, #B5892A 100%)",
-              border: "1px solid #FFF2C8",
-            }}
-          >
-            <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
-            <span className="relative z-10">Kelola Daftar Tamu</span>
-            <svg
-              className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover:translate-x-0.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-              />
-            </svg>
-          </Link>
         </div>
 
         {/* Ringkasan Statistik */}

@@ -134,13 +134,6 @@ export default function KelolaTamu() {
               Kelola Tamu
             </h1>
           </div>
-
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-[2px] border border-[#D4AF37]/40 bg-[#260308]/80 text-xs text-[#E6C78C] hover:border-[#F4D99B] hover:text-[#FAF0DF] transition-colors self-start sm:self-auto"
-          >
-            <span>← Kembali ke Dashboard</span>
-          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
