@@ -6,6 +6,22 @@ import {
   MelayuCornerOrnament,
 } from "@/components/ui/MelayuOrnaments";
 
+function formatParentText(rolePrefix, fatherName, motherName) {
+  const father = fatherName?.trim();
+  const mother = motherName?.trim();
+
+  if (father && mother) {
+    return `${rolePrefix} dari Bapak ${father} & Ibu ${mother}`;
+  }
+  if (father) {
+    return `${rolePrefix} dari Bapak ${father}`;
+  }
+  if (mother) {
+    return `${rolePrefix} dari Ibu ${mother}`;
+  }
+  return `${rolePrefix} dari Bapak Fulan & Ibu Fulanah`;
+}
+
 function CoupleCard({
   roleLabel,
   fullName,
@@ -64,15 +80,21 @@ function CoupleCard({
 
 export default function Profile({ profile }) {
   const groomFullName = profile?.groom_full_name || "Nama Lengkap Mempelai Pria";
-  const groomParents =
-    profile?.groom_parents || "Putra dari Bapak Fulan & Ibu Fulanah";
+  const groomParents = formatParentText(
+    "Putra",
+    profile?.groom_father_name,
+    profile?.groom_mother_name
+  );
   const groomPhoto = profile?.groom_photo_url || "";
   const groomIg = profile?.groom_instagram || "";
 
   const brideFullName =
     profile?.bride_full_name || "Nama Lengkap Mempelai Wanita";
-  const brideParents =
-    profile?.bride_parents || "Putri dari Bapak Fulan & Ibu Fulanah";
+  const brideParents = formatParentText(
+    "Putri",
+    profile?.bride_father_name,
+    profile?.bride_mother_name
+  );
   const bridePhoto = profile?.bride_photo_url || "";
   const brideIg = profile?.bride_instagram || "";
 
