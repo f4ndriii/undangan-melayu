@@ -10,8 +10,8 @@ function RSVPForm({ onSubmitted }) {
   const initialGuest = searchParams.get("to") || "";
 
   const [guestName, setGuestName] = useState(initialGuest);
+  const [address, setAddress] = useState("");
   const [attendance, setAttendance] = useState("hadir");
-  const [guestCount, setGuestCount] = useState(1);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState(null);
@@ -28,32 +28,47 @@ function RSVPForm({ onSubmitted }) {
     setStatusFeedback(null);
 
     try {
-      const payload = {
-        guest_name: guestName.trim(),
-        attendance,
-        guest_count: attendance === "hadir" ? Number(guestCount) : 0,
-        message: message.trim(),
-      };
+      // 1. Simpan status kehadiran ke tabel 'guests' (dibaca oleh Dashboard Admin)
+      const { error: guestError } = await supabase.from("guests").insert([
+        {
+          name: guestName.trim(),
+          address: address.trim() || "-",
+          is_attending: attendance === "hadir",
+        },
+      ]);
+      if (guestError) throw guestError;
 
-      const { data, error } = await supabase
-        .from("rsvps")
-        .insert([payload])
+      // 2. Simpan ucapan & doa ke tabel 'wishes' (dibaca oleh Dashboard Admin & daftar doa)
+      const { data: wishData, error: wishError } = await supabase
+        .from("wishes")
+        .insert([
+          {
+            sender_name: guestName.trim(),
+            message: message.trim(),
+          },
+        ])
         .select()
         .single();
 
-      if (error) throw error;
+      if (wishError) throw wishError;
 
       setStatusFeedback({
         type: "success",
         text: "Terima kasih, konfirmasi kehadiran dan doa restu Anda telah tercatat.",
       });
       setMessage("");
-      if (onSubmitted && data) onSubmitted(data);
+      setAddress("");
+      if (onSubmitted && wishData) {
+        onSubmitted({
+          ...wishData,
+          is_attending: attendance === "hadir",
+        });
+      }
     } catch (err) {
       console.error("Gagal mengirim RSVP:", err);
       setStatusFeedback({
         type: "error",
-        text: "Maaf, terjadi kendala saat mengirim ucapan. Silakan coba kembali.",
+        text: "Maaf, terjadi kendala saat mengirim ucapan: " + err.message,
       });
     } finally {
       setIsSubmitting(false);
@@ -77,8 +92,21 @@ function RSVPForm({ onSubmitted }) {
         />
       </div>
 
-      {/* Status Kehadiran & Spinner Jumlah Tamu */}
+      {/* Alamat / Instansi & Konfirmasi Kehadiran */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
+            Alamat / Instansi
+          </label>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Contoh: Pekanbaru / Rekan Kerja"
+            className="w-full h-[46px] px-4 bg-[#220206]/85 border border-[#D4AF37]/45 rounded-[2px] font-sans text-sm text-[#FAF0DF] placeholder:text-[#F4E3C3]/35 focus:outline-none focus:border-[#F4D99B] transition-colors"
+          />
+        </div>
+
         <div>
           <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
             Konfirmasi Kehadiran
@@ -90,64 +118,7 @@ function RSVPForm({ onSubmitted }) {
           >
             <option value="hadir">InsyaAllah Hadir</option>
             <option value="tidak_hadir">Maaf, Berhalangan Hadir</option>
-            <option value="ragu">Masih Ragu / Tentatif</option>
           </select>
-        </div>
-
-        <div>
-          <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
-            Jumlah Tamu
-          </label>
-          <div
-            className={`flex items-center justify-between h-[46px] px-2 bg-[#220206]/85 border border-[#D4AF37]/45 rounded-[2px] transition-opacity ${
-              attendance !== "hadir" ? "opacity-40 pointer-events-none" : ""
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => setGuestCount((prev) => Math.max(1, prev - 1))}
-              disabled={attendance !== "hadir" || guestCount <= 1}
-              aria-label="Kurangi jumlah tamu"
-              className="w-8 h-8 flex items-center justify-center rounded-[2px] border border-[#D4AF37]/40 bg-[#35050C] text-[#F4D99B] hover:bg-[#D4AF37] hover:text-[#2C0409] disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
-            >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
-              </svg>
-            </button>
-
-            <div className="flex items-baseline gap-1.5 select-none">
-              <span className="font-serif text-lg text-[#FAF0DF] font-medium">
-                {attendance === "hadir" ? guestCount : 0}
-              </span>
-              <span className="font-sans text-[11px] text-[#E6C78C]/75">
-                Orang
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setGuestCount((prev) => Math.min(10, prev + 1))}
-              disabled={attendance !== "hadir" || guestCount >= 10}
-              aria-label="Tambah jumlah tamu"
-              className="w-8 h-8 flex items-center justify-center rounded-[2px] border border-[#D4AF37]/40 bg-[#35050C] text-[#F4D99B] hover:bg-[#D4AF37] hover:text-[#2C0409] disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
-            >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m-7-7h14" />
-              </svg>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -179,7 +150,7 @@ function RSVPForm({ onSubmitted }) {
         </div>
       )}
 
-      {/* Tombol Kirim dengan Shimmer Hover (Seragam dengan Tombol Maps) */}
+      {/* Tombol Kirim dengan Shimmer Hover */}
       <div className="pt-2 text-center">
         <button
           type="submit"
@@ -222,14 +193,28 @@ export default function RSVP() {
   useEffect(() => {
     const fetchWishes = async () => {
       try {
-        const { data, error } = await supabase
-          .from("rsvps")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(30);
+        // Ambil ucapan dari tabel 'wishes' dan status tamu dari 'guests'
+        const [{ data: wishesData, error }, { data: guestsData }] =
+          await Promise.all([
+            supabase
+              .from("wishes")
+              .select("*")
+              .order("created_at", { ascending: false })
+              .limit(50),
+            supabase.from("guests").select("name, is_attending"),
+          ]);
 
-        if (!error && data) {
-          setWishes(data);
+        if (!error && wishesData) {
+          const merged = wishesData.map((w) => {
+            const matchedGuest = guestsData?.find(
+              (g) => g.name?.toLowerCase() === w.sender_name?.toLowerCase()
+            );
+            return {
+              ...w,
+              is_attending: matchedGuest ? matchedGuest.is_attending : null,
+            };
+          });
+          setWishes(merged);
         }
       } catch (err) {
         console.error("Gagal memuat ucapan:", err);
@@ -243,25 +228,6 @@ export default function RSVP() {
 
   const handleNewWish = (newWish) => {
     setWishes((prev) => [newWish, ...prev]);
-  };
-
-  const getAttendanceBadge = (status) => {
-    if (status === "hadir") {
-      return {
-        label: "Hadir",
-        className: "bg-[#0F4642] text-[#F4D99B] border-[#D4AF37]/50",
-      };
-    }
-    if (status === "tidak_hadir") {
-      return {
-        label: "Berhalangan",
-        className: "bg-[#4A0813] text-[#F4E3C3]/75 border-[#D4AF37]/30",
-      };
-    }
-    return {
-      label: "Tentatif",
-      className: "bg-[#3B060E] text-[#E6C78C] border-[#D4AF37]/40",
-    };
   };
 
   return (
@@ -368,7 +334,6 @@ export default function RSVP() {
           ) : (
             <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 sm:pr-2">
               {wishes.map((item, idx) => {
-                const badge = getAttendanceBadge(item.attendance);
                 const formattedTime = item.created_at
                   ? new Date(item.created_at).toLocaleDateString("id-ID", {
                       day: "2-digit",
@@ -385,13 +350,19 @@ export default function RSVP() {
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2.5">
                         <span className="font-serif font-medium text-base sm:text-lg text-[#FAF0DF]">
-                          {item.guest_name}
+                          {item.sender_name}
                         </span>
-                        <span
-                          className={`px-2.5 py-0.5 text-[9px] font-sans tracking-[0.15em] uppercase border rounded-full ${badge.className}`}
-                        >
-                          {badge.label}
-                        </span>
+                        {item.is_attending !== null && (
+                          <span
+                            className={`px-2.5 py-0.5 text-[9px] font-sans tracking-[0.15em] uppercase border rounded-full ${
+                              item.is_attending
+                                ? "bg-[#0F4642] text-[#F4D99B] border-[#D4AF37]/50"
+                                : "bg-[#4A0813] text-[#F4E3C3]/75 border-[#D4AF37]/30"
+                            }`}
+                          >
+                            {item.is_attending ? "Hadir" : "Berhalangan"}
+                          </span>
+                        )}
                       </div>
 
                       {formattedTime && (
