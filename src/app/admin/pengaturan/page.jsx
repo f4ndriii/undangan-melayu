@@ -10,7 +10,7 @@ export default function PengaturanDataUndangan() {
   const [uploadingKey, setUploadingKey] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
-  // Menyimpan ID baris bawaan dari database untuk keperluan update[cite: 8]
+  // Menyimpan ID baris bawaan dari database untuk keperluan update
   const [ids, setIds] = useState({
     profileId: null,
     akadId: null,
@@ -19,17 +19,19 @@ export default function PengaturanDataUndangan() {
   });
 
   const [formData, setFormData] = useState({
-    // 1. profiles_config[cite: 8]
+    // 1. profiles_config (Nama Ayah & Ibu Terpisah)
     groom_nick_name: "",
     groom_full_name: "",
-    groom_parents: "",
+    groom_father_name: "",
+    groom_mother_name: "",
     groom_photo_url: "",
     bride_nick_name: "",
     bride_full_name: "",
-    bride_parents: "",
+    bride_father_name: "",
+    bride_mother_name: "",
     bride_photo_url: "",
 
-    // 2. events (Akad & Resepsi)[cite: 8]
+    // 2. events (Akad & Resepsi)
     akad_date: "",
     akad_time: "",
     akad_location_name: "",
@@ -42,13 +44,13 @@ export default function PengaturanDataUndangan() {
     resepsi_location_address: "",
     resepsi_maps_url: "",
 
-    // 3. love_stories[cite: 8]
+    // 3. love_stories
     kisahCinta: [],
 
-    // 4. galleries[cite: 8]
+    // 4. galleries
     galeriFoto: [],
 
-    // 5. gifts_config[cite: 8]
+    // 5. gifts_config
     bank_name: "",
     account_number: "",
     account_owner: "",
@@ -57,7 +59,7 @@ export default function PengaturanDataUndangan() {
     receiver_address: "",
   });
 
-  // Memuat semua data awal dari Supabase saat halaman dibuka[cite: 8]
+  // Memuat semua data awal dari Supabase saat halaman dibuka
   useEffect(() => {
     async function loadAllData() {
       setIsLoading(true);
@@ -97,11 +99,13 @@ export default function PengaturanDataUndangan() {
         setFormData({
           groom_nick_name: profile?.groom_nick_name || "",
           groom_full_name: profile?.groom_full_name || "",
-          groom_parents: profile?.groom_parents || "",
+          groom_father_name: profile?.groom_father_name || "",
+          groom_mother_name: profile?.groom_mother_name || "",
           groom_photo_url: profile?.groom_photo_url || "",
           bride_nick_name: profile?.bride_nick_name || "",
           bride_full_name: profile?.bride_full_name || "",
-          bride_parents: profile?.bride_parents || "",
+          bride_father_name: profile?.bride_father_name || "",
+          bride_mother_name: profile?.bride_mother_name || "",
           bride_photo_url: profile?.bride_photo_url || "",
 
           akad_date: akad?.event_date || "",
@@ -152,13 +156,13 @@ export default function PengaturanDataUndangan() {
       .substring(2, 7)}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("undangan-media")
+      .from("wedding_assets")
       .upload(fileName, file, { upsert: true });
 
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage
-      .from("undangan-media")
+      .from("wedding_assets")
       .getPublicUrl(fileName);
 
     return data.publicUrl;
@@ -230,7 +234,7 @@ export default function PengaturanDataUndangan() {
     }
   };
 
-  // Handler Kisah Cinta[cite: 8]
+  // Handler Kisah Cinta
   const handleKisahChange = (index, field, value) => {
     const updated = [...formData.kisahCinta];
     updated[index][field] = value;
@@ -252,7 +256,7 @@ export default function PengaturanDataUndangan() {
     });
   };
 
-  // Handler Hapus Foto Galeri[cite: 8]
+  // Handler Hapus Foto Galeri
   const removeGaleri = (index) => {
     setFormData({
       ...formData,
@@ -260,23 +264,25 @@ export default function PengaturanDataUndangan() {
     });
   };
 
-  // Menyimpan semua perubahan ke 5 tabel Supabase[cite: 8]
+  // Menyimpan semua perubahan ke 5 tabel Supabase
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
     setFeedback(null);
 
     try {
-      // 1. Simpan Profil Mempelai (profiles_config)[cite: 8]
+      // 1. Simpan Profil Mempelai (profiles_config)
       const profilePayload = {
         ...(ids.profileId && { id: ids.profileId }),
         groom_nick_name: formData.groom_nick_name,
         groom_full_name: formData.groom_full_name,
-        groom_parents: formData.groom_parents,
+        groom_father_name: formData.groom_father_name,
+        groom_mother_name: formData.groom_mother_name,
         groom_photo_url: formData.groom_photo_url || null,
         bride_nick_name: formData.bride_nick_name,
         bride_full_name: formData.bride_full_name,
-        bride_parents: formData.bride_parents,
+        bride_father_name: formData.bride_father_name,
+        bride_mother_name: formData.bride_mother_name,
         bride_photo_url: formData.bride_photo_url || null,
         updated_at: new Date().toISOString(),
       };
@@ -285,7 +291,7 @@ export default function PengaturanDataUndangan() {
         .upsert(profilePayload);
       if (errProfile) throw errProfile;
 
-      // 2. Simpan Jadwal Acara (events)[cite: 8]
+      // 2. Simpan Jadwal Acara (events)
       const akadPayload = {
         ...(ids.akadId && { id: ids.akadId }),
         event_type: "akad",
@@ -309,7 +315,7 @@ export default function PengaturanDataUndangan() {
         .upsert([akadPayload, resepsiPayload]);
       if (errEvents) throw errEvents;
 
-      // 3. Simpan Kisah Cinta (love_stories)[cite: 8]
+      // 3. Simpan Kisah Cinta (love_stories)
       await supabase
         .from("love_stories")
         .delete()
@@ -329,7 +335,7 @@ export default function PengaturanDataUndangan() {
         if (errStories) throw errStories;
       }
 
-      // 4. Simpan Galeri Foto (galleries)[cite: 8]
+      // 4. Simpan Galeri Foto (galleries)
       await supabase
         .from("galleries")
         .delete()
@@ -347,7 +353,7 @@ export default function PengaturanDataUndangan() {
         if (errGalleries) throw errGalleries;
       }
 
-      // 5. Simpan Kado Digital (gifts_config)[cite: 8]
+      // 5. Simpan Kado Digital (gifts_config)
       const giftPayload = {
         ...(ids.giftId && { id: ids.giftId }),
         bank_name: formData.bank_name || null,
@@ -428,7 +434,7 @@ export default function PengaturanDataUndangan() {
         )}
 
         <form onSubmit={handleSave} className="space-y-8">
-          {/* --- 1. DATA MEMPELAI ---[cite: 8] */}
+          {/* --- 1. DATA MEMPELAI --- */}
           <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
             {/* Pria */}
             <div
@@ -460,13 +466,13 @@ export default function PengaturanDataUndangan() {
                     <div>
                       <label className={labelClass}>Foto Mempelai Pria</label>
                       {formData.groom_photo_url ? (
-                        <div className="relative group w-full h-48 rounded-[2px] overflow-hidden border border-[#D4AF37]/60 bg-[#1D0206]">
+                        <div className="relative group w-44 aspect-[3/4] mx-auto rounded-[2px] overflow-hidden border border-[#D4AF37]/60 bg-[#1D0206]">
                           <img
                             src={formData.groom_photo_url}
                             alt="Foto Mempelai Pria"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover object-top"
                           />
-                          <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2.5">
+                          <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                             <label className="px-3.5 py-2 bg-[#D4AF37] text-[#2C0409] text-xs font-semibold rounded-[2px] cursor-pointer hover:brightness-110">
                               {uploadingKey === "groom_photo_url"
                                 ? "Mengunggah..."
@@ -560,17 +566,31 @@ export default function PengaturanDataUndangan() {
                         className={inputClass}
                       />
                     </div>
-                    <div>
-                      <label className={labelClass}>Nama Orang Tua *</label>
-                      <input
-                        required
-                        type="text"
-                        name="groom_parents"
-                        value={formData.groom_parents}
-                        onChange={handleChange}
-                        placeholder="Putra dari Bapak ... & Ibu ..."
-                        className={inputClass}
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelClass}>Nama Ayah *</label>
+                        <input
+                          required
+                          type="text"
+                          name="groom_father_name"
+                          value={formData.groom_father_name}
+                          onChange={handleChange}
+                          placeholder="Nama Ayah (tanpa 'Bapak')"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Nama Ibu *</label>
+                        <input
+                          required
+                          type="text"
+                          name="groom_mother_name"
+                          value={formData.groom_mother_name}
+                          onChange={handleChange}
+                          placeholder="Nama Ibu (tanpa 'Ibu')"
+                          className={inputClass}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -607,13 +627,14 @@ export default function PengaturanDataUndangan() {
                     <div>
                       <label className={labelClass}>Foto Mempelai Wanita</label>
                       {formData.bride_photo_url ? (
-                        <div className="relative group w-full h-48 rounded-[2px] overflow-hidden border border-[#D4AF37]/60 bg-[#1D0206]">
+                        <div className="relative group w-44 aspect-[3/4] mx-auto rounded-[2px] overflow-hidden border border-[#D4AF37]/60 bg-[#1D0206]">
                           <img
                             src={formData.bride_photo_url}
                             alt="Foto Mempelai Wanita"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover object-top"
                           />
-                          <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2.5">
+                          <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                            {/* ... tombol Ganti Foto & Hapus tetap sama ... */}
                             <label className="px-3.5 py-2 bg-[#D4AF37] text-[#2C0409] text-xs font-semibold rounded-[2px] cursor-pointer hover:brightness-110">
                               {uploadingKey === "bride_photo_url"
                                 ? "Mengunggah..."
@@ -707,17 +728,31 @@ export default function PengaturanDataUndangan() {
                         className={inputClass}
                       />
                     </div>
-                    <div>
-                      <label className={labelClass}>Nama Orang Tua *</label>
-                      <input
-                        required
-                        type="text"
-                        name="bride_parents"
-                        value={formData.bride_parents}
-                        onChange={handleChange}
-                        placeholder="Putri dari Bapak ... & Ibu ..."
-                        className={inputClass}
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelClass}>Nama Ayah *</label>
+                        <input
+                          required
+                          type="text"
+                          name="bride_father_name"
+                          value={formData.bride_father_name}
+                          onChange={handleChange}
+                          placeholder="Nama Ayah (tanpa 'Bapak')"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Nama Ibu *</label>
+                        <input
+                          required
+                          type="text"
+                          name="bride_mother_name"
+                          value={formData.bride_mother_name}
+                          onChange={handleChange}
+                          placeholder="Nama Ibu (tanpa 'Ibu')"
+                          className={inputClass}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -725,7 +760,7 @@ export default function PengaturanDataUndangan() {
             </div>
           </div>
 
-          {/* --- 2. JADWAL & LOKASI ACARA ---[cite: 8] */}
+          {/* --- 2. JADWAL & LOKASI ACARA --- */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
             style={{
@@ -897,7 +932,7 @@ export default function PengaturanDataUndangan() {
             </div>
           </div>
 
-          {/* --- 3. KISAH CINTA ---[cite: 8] */}
+          {/* --- 3. KISAH CINTA --- */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
             style={{
@@ -997,7 +1032,7 @@ export default function PengaturanDataUndangan() {
             </div>
           </div>
 
-          {/* --- 4. GALERI FOTO (GRID VISUAL TANPA INPUT TEKS LINK) ---[cite: 8] */}
+          {/* --- 4. GALERI FOTO (GRID VISUAL TANPA INPUT TEKS LINK) --- */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
             style={{
@@ -1093,7 +1128,7 @@ export default function PengaturanDataUndangan() {
             </div>
           </div>
 
-          {/* --- 5. KADO DIGITAL & ALAMAT KIRIM ---[cite: 8] */}
+          {/* --- 5. KADO DIGITAL & ALAMAT KIRIM --- */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
             style={{
@@ -1255,7 +1290,7 @@ export default function PengaturanDataUndangan() {
             </div>
           </div>
 
-          {/* --- TOMBOL SIMPAN MELAYANG ---[cite: 8] */}
+          {/* --- TOMBOL SIMPAN MELAYANG --- */}
           <div className="flex justify-end sticky bottom-6 z-30">
             <button
               type="submit"
