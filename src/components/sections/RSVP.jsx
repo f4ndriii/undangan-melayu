@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import MelayuPattern from "@/components/ui/MelayuPattern";
 
+const PAGE_SIZE = 10;
+
 function RSVPForm({ onSubmitted }) {
   const searchParams = useSearchParams();
   const initialGuest = searchParams.get("to") || "";
@@ -27,23 +29,51 @@ function RSVPForm({ onSubmitted }) {
     setIsSubmitting(true);
     setStatusFeedback(null);
 
-    try {
-      // 1. Simpan status kehadiran ke tabel 'guests' (dibaca oleh Dashboard Admin)
-      const { error: guestError } = await supabase.from("guests").insert([
-        {
-          name: guestName.trim(),
-          address: address.trim() || "-",
-          is_attending: attendance === "hadir",
-        },
-      ]);
-      if (guestError) throw guestError;
+    const trimmedName = guestName.trim();
+    const trimmedAddress = address.trim();
+    const isAttending = attendance === "hadir";
 
-      // 2. Simpan ucapan & doa ke tabel 'wishes' (dibaca oleh Dashboard Admin & daftar doa)
+    try {
+      // 1. Cek apakah nama tamu sudah terdaftar di tabel 'guests' (case-insensitive)
+      const { data: existingGuest, error: checkError } = await supabase
+        .from("guests")
+        .select("id, address")
+        .ilike("name", trimmedName)
+        .limit(1)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existingGuest) {
+        // Jika sudah ada -> UPDATE status kehadiran & alamat (jika diisi)
+        const { error: updateError } = await supabase
+          .from("guests")
+          .update({
+            is_attending: isAttending,
+            address: trimmedAddress || existingGuest.address || "-",
+          })
+          .eq("id", existingGuest.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Jika belum ada -> INSERT baris tamu baru
+        const { error: insertError } = await supabase.from("guests").insert([
+          {
+            name: trimmedName,
+            address: trimmedAddress || "-",
+            is_attending: isAttending,
+          },
+        ]);
+
+        if (insertError) throw insertError;
+      }
+
+      // 2. Tetap tambahkan untaian doa baru ke tabel 'wishes'
       const { data: wishData, error: wishError } = await supabase
         .from("wishes")
         .insert([
           {
-            sender_name: guestName.trim(),
+            sender_name: trimmedName,
             message: message.trim(),
           },
         ])
@@ -54,14 +84,16 @@ function RSVPForm({ onSubmitted }) {
 
       setStatusFeedback({
         type: "success",
-        text: "Terima kasih, konfirmasi kehadiran dan doa restu Anda telah tercatat.",
+        text: existingGuest
+          ? "Terima kasih, status kehadiran Anda telah diperbarui dan doa restu telah ditambahkan."
+          : "Terima kasih, konfirmasi kehadiran dan doa restu Anda telah tercatat.",
       });
       setMessage("");
       setAddress("");
       if (onSubmitted && wishData) {
         onSubmitted({
           ...wishData,
-          is_attending: attendance === "hadir",
+          is_attending: isAttending,
         });
       }
     } catch (err) {
@@ -77,7 +109,6 @@ function RSVPForm({ onSubmitted }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 text-left">
-      {/* Nama Tamu */}
       <div>
         <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
           Nama Lengkap
@@ -92,7 +123,6 @@ function RSVPForm({ onSubmitted }) {
         />
       </div>
 
-      {/* Alamat / Instansi & Konfirmasi Kehadiran */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
@@ -122,7 +152,6 @@ function RSVPForm({ onSubmitted }) {
         </div>
       </div>
 
-      {/* Ucapan & Doa Restu */}
       <div>
         <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
           Ucapan &amp; Doa Restu
@@ -137,7 +166,6 @@ function RSVPForm({ onSubmitted }) {
         />
       </div>
 
-      {/* Pesan Status */}
       {statusFeedback && (
         <div
           className={`px-4 py-2.5 rounded-[2px] border text-xs font-sans ${
@@ -150,7 +178,6 @@ function RSVPForm({ onSubmitted }) {
         </div>
       )}
 
-      {/* Tombol Kirim dengan Shimmer Hover */}
       <div className="pt-2 text-center">
         <button
           type="submit"
@@ -163,7 +190,6 @@ function RSVPForm({ onSubmitted }) {
           }}
         >
           <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
-
           <svg
             className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
             fill="none"
@@ -188,47 +214,85 @@ function RSVPForm({ onSubmitted }) {
 
 export default function RSVP() {
   const [wishes, setWishes] = useState([]);
+  const [totalWishes, setTotalWishes] = useState(0);
   const [loadingWishes, setLoadingWishes] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchWishesBatch = async (fromIndex, toIndex, isInitial = false) => {
+    try {
+      const {
+        data: wishesData,
+        count,
+        error,
+      } = await supabase
+        .from("wishes")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(fromIndex, toIndex);
+
+      if (error || !wishesData) return;
+
+      if (typeof count === "number") {
+        setTotalWishes(count);
+      }
+
+      // Ambil status kehadiran hanya untuk nama-nama pada batch ini
+      const senderNames = [
+        ...new Set(wishesData.map((w) => w.sender_name).filter(Boolean)),
+      ];
+      let guestsData = [];
+      if (senderNames.length > 0) {
+        const { data } = await supabase
+          .from("guests")
+          .select("name, is_attending")
+          .in("name", senderNames);
+        guestsData = data || [];
+      }
+
+      const merged = wishesData.map((w) => {
+        const matchedGuest = guestsData.find(
+          (g) => g.name?.toLowerCase() === w.sender_name?.toLowerCase()
+        );
+        return {
+          ...w,
+          is_attending: matchedGuest ? matchedGuest.is_attending : null,
+        };
+      });
+
+      if (isInitial) {
+        setWishes(merged);
+      } else {
+        setWishes((prev) => [...prev, ...merged]);
+      }
+    } catch (err) {
+      console.error("Gagal memuat ucapan:", err);
+    }
+  };
 
   useEffect(() => {
-    const fetchWishes = async () => {
-      try {
-        // Ambil ucapan dari tabel 'wishes' dan status tamu dari 'guests'
-        const [{ data: wishesData, error }, { data: guestsData }] =
-          await Promise.all([
-            supabase
-              .from("wishes")
-              .select("*")
-              .order("created_at", { ascending: false })
-              .limit(50),
-            supabase.from("guests").select("name, is_attending"),
-          ]);
-
-        if (!error && wishesData) {
-          const merged = wishesData.map((w) => {
-            const matchedGuest = guestsData?.find(
-              (g) => g.name?.toLowerCase() === w.sender_name?.toLowerCase()
-            );
-            return {
-              ...w,
-              is_attending: matchedGuest ? matchedGuest.is_attending : null,
-            };
-          });
-          setWishes(merged);
-        }
-      } catch (err) {
-        console.error("Gagal memuat ucapan:", err);
-      } finally {
-        setLoadingWishes(false);
-      }
+    const init = async () => {
+      setLoadingWishes(true);
+      await fetchWishesBatch(0, PAGE_SIZE - 1, true);
+      setLoadingWishes(false);
     };
-
-    fetchWishes();
+    init();
   }, []);
+
+  const handleLoadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    const from = wishes.length;
+    const to = from + PAGE_SIZE - 1;
+    await fetchWishesBatch(from, to, false);
+    setLoadingMore(false);
+  };
 
   const handleNewWish = (newWish) => {
     setWishes((prev) => [newWish, ...prev]);
+    setTotalWishes((prev) => prev + 1);
   };
+
+  const hasMore = wishes.length < totalWishes;
 
   return (
     <section
@@ -239,11 +303,9 @@ export default function RSVP() {
           "radial-gradient(circle at center, #4A0813 0%, #31040B 70%, #220206 100%)",
       }}
     >
-      {/* Tekstur Songket Melayu */}
       <MelayuPattern className="opacity-[0.06]" />
 
       <div className="relative z-10 max-w-3xl mx-auto">
-        {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -262,7 +324,6 @@ export default function RSVP() {
           </p>
         </motion.div>
 
-        {/* Bingkai Kartu Formulir */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -284,7 +345,6 @@ export default function RSVP() {
             >
               <MelayuPattern className="opacity-[0.04]" />
 
-              {/* Ornamen Sudut */}
               <div className="w-4 h-4 border-t border-l border-[#D4AF37]/65 absolute top-2.5 left-2.5" />
               <div className="w-4 h-4 border-t border-r border-[#D4AF37]/65 absolute top-2.5 right-2.5" />
               <div className="w-4 h-4 border-b border-l border-[#D4AF37]/65 absolute bottom-2.5 left-2.5" />
@@ -305,7 +365,6 @@ export default function RSVP() {
           </div>
         </motion.div>
 
-        {/* Daftar Ucapan & Doa Tamu */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -317,7 +376,7 @@ export default function RSVP() {
               Untaian Doa Tamu
             </h3>
             <span className="font-sans text-[10px] tracking-[0.2em] uppercase text-[#E6C78C]/80">
-              {wishes.length} Ucapan
+              {totalWishes} Ucapan
             </span>
           </div>
 
@@ -332,7 +391,7 @@ export default function RSVP() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 sm:pr-2">
+            <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1 sm:pr-2">
               {wishes.map((item, idx) => {
                 const formattedTime = item.created_at
                   ? new Date(item.created_at).toLocaleDateString("id-ID", {
@@ -378,6 +437,21 @@ export default function RSVP() {
                   </div>
                 );
               })}
+
+              {hasMore && (
+                <div className="pt-2 pb-1 text-center">
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="px-5 py-2 bg-[#35050C] border border-[#D4AF37]/55 text-[#F4D99B] font-sans text-xs tracking-wider uppercase rounded-[2px] hover:bg-[#D4AF37] hover:text-[#2C0409] disabled:opacity-50 transition-colors cursor-pointer"
+                  >
+                    {loadingMore
+                      ? "Memuat Ucapan..."
+                      : `Muat Ucapan Lainnya (${totalWishes - wishes.length} tersisa)`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </motion.div>
