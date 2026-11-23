@@ -7,9 +7,10 @@ import MelayuPattern from "@/components/ui/MelayuPattern";
 export default function PengaturanDataUndangan() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingKey, setUploadingKey] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
-  // Menyimpan ID baris bawaan dari database untuk keperluan update
+  // Menyimpan ID baris bawaan dari database untuk keperluan update[cite: 8]
   const [ids, setIds] = useState({
     profileId: null,
     akadId: null,
@@ -18,7 +19,7 @@ export default function PengaturanDataUndangan() {
   });
 
   const [formData, setFormData] = useState({
-    // 1. profiles_config
+    // 1. profiles_config[cite: 8]
     groom_nick_name: "",
     groom_full_name: "",
     groom_parents: "",
@@ -28,7 +29,7 @@ export default function PengaturanDataUndangan() {
     bride_parents: "",
     bride_photo_url: "",
 
-    // 2. events (Akad & Resepsi)
+    // 2. events (Akad & Resepsi)[cite: 8]
     akad_date: "",
     akad_time: "",
     akad_location_name: "",
@@ -41,13 +42,13 @@ export default function PengaturanDataUndangan() {
     resepsi_location_address: "",
     resepsi_maps_url: "",
 
-    // 3. love_stories
+    // 3. love_stories[cite: 8]
     kisahCinta: [],
 
-    // 4. galleries
+    // 4. galleries[cite: 8]
     galeriFoto: [],
 
-    // 5. gifts_config
+    // 5. gifts_config[cite: 8]
     bank_name: "",
     account_number: "",
     account_owner: "",
@@ -56,7 +57,7 @@ export default function PengaturanDataUndangan() {
     receiver_address: "",
   });
 
-  // Memuat semua data awal dari Supabase saat halaman dibuka
+  // Memuat semua data awal dari Supabase saat halaman dibuka[cite: 8]
   useEffect(() => {
     async function loadAllData() {
       setIsLoading(true);
@@ -120,7 +121,7 @@ export default function PengaturanDataUndangan() {
               ? stories
               : [{ story_date: "", title: "", description: "" }],
           galeriFoto:
-            galleries?.length > 0 ? galleries.map((g) => g.image_url) : [""],
+            galleries?.length > 0 ? galleries.map((g) => g.image_url) : [],
 
           bank_name: gift?.bank_name || "",
           account_number: gift?.account_number || "",
@@ -143,7 +144,93 @@ export default function PengaturanDataUndangan() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handler Kisah Cinta
+  // --- HELPER UPLOAD KE SUPABASE STORAGE (Bucket: undangan-media) ---
+  const uploadToSupabase = async (file, folder = "general") => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${folder}/${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 7)}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("undangan-media")
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from("undangan-media")
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  };
+
+  // Upload satu foto (Mempelai Pria, Mempelai Wanita, atau QRIS)
+  const handleSingleFileUpload = async (e, fieldName, folder) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingKey(fieldName);
+    setFeedback(null);
+    try {
+      const publicUrl = await uploadToSupabase(file, folder);
+      setFormData((prev) => ({ ...prev, [fieldName]: publicUrl }));
+      setFeedback({
+        type: "success",
+        text: "Foto berhasil diunggah! Jangan lupa klik 'Simpan Pengaturan' di bagian bawah.",
+      });
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        text:
+          "Gagal mengunggah foto (pastikan bucket 'undangan-media' sudah dibuat & Public): " +
+          err.message,
+      });
+    } finally {
+      setUploadingKey(null);
+      e.target.value = "";
+    }
+  };
+
+  // Hapus foto tunggal (Mempelai / QRIS)
+  const handleRemoveSinglePhoto = (fieldName) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: "" }));
+  };
+
+  // Upload banyak foto sekaligus ke Galeri Foto
+  const handleGalleryFilesUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingKey("galeri");
+    setFeedback(null);
+    try {
+      const uploadedUrls = await Promise.all(
+        files.map((file) => uploadToSupabase(file, "galeri"))
+      );
+
+      setFormData((prev) => {
+        const existing = prev.galeriFoto.filter((url) => url.trim() !== "");
+        return { ...prev, galeriFoto: [...existing, ...uploadedUrls] };
+      });
+
+      setFeedback({
+        type: "success",
+        text: `${uploadedUrls.length} foto galeri berhasil diunggah! Klik 'Simpan Pengaturan' untuk menyimpan ke database.`,
+      });
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        text:
+          "Gagal mengunggah galeri (pastikan bucket 'undangan-media' sudah dibuat & Public): " +
+          err.message,
+      });
+    } finally {
+      setUploadingKey(null);
+      e.target.value = "";
+    }
+  };
+
+  // Handler Kisah Cinta[cite: 8]
   const handleKisahChange = (index, field, value) => {
     const updated = [...formData.kisahCinta];
     updated[index][field] = value;
@@ -165,15 +252,7 @@ export default function PengaturanDataUndangan() {
     });
   };
 
-  // Handler Galeri Foto
-  const handleGaleriChange = (index, value) => {
-    const updated = [...formData.galeriFoto];
-    updated[index] = value;
-    setFormData({ ...formData, galeriFoto: updated });
-  };
-  const addGaleri = () => {
-    setFormData({ ...formData, galeriFoto: [...formData.galeriFoto, ""] });
-  };
+  // Handler Hapus Foto Galeri[cite: 8]
   const removeGaleri = (index) => {
     setFormData({
       ...formData,
@@ -181,14 +260,14 @@ export default function PengaturanDataUndangan() {
     });
   };
 
-  // Menyimpan semua perubahan ke 5 tabel Supabase
+  // Menyimpan semua perubahan ke 5 tabel Supabase[cite: 8]
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
     setFeedback(null);
 
     try {
-      // 1. Simpan Profil Mempelai (profiles_config)
+      // 1. Simpan Profil Mempelai (profiles_config)[cite: 8]
       const profilePayload = {
         ...(ids.profileId && { id: ids.profileId }),
         groom_nick_name: formData.groom_nick_name,
@@ -206,7 +285,7 @@ export default function PengaturanDataUndangan() {
         .upsert(profilePayload);
       if (errProfile) throw errProfile;
 
-      // 2. Simpan Jadwal Acara (events)
+      // 2. Simpan Jadwal Acara (events)[cite: 8]
       const akadPayload = {
         ...(ids.akadId && { id: ids.akadId }),
         event_type: "akad",
@@ -230,7 +309,7 @@ export default function PengaturanDataUndangan() {
         .upsert([akadPayload, resepsiPayload]);
       if (errEvents) throw errEvents;
 
-      // 3. Simpan Kisah Cinta (love_stories)
+      // 3. Simpan Kisah Cinta (love_stories)[cite: 8]
       await supabase
         .from("love_stories")
         .delete()
@@ -250,7 +329,7 @@ export default function PengaturanDataUndangan() {
         if (errStories) throw errStories;
       }
 
-      // 4. Simpan Galeri Foto (galleries)
+      // 4. Simpan Galeri Foto (galleries)[cite: 8]
       await supabase
         .from("galleries")
         .delete()
@@ -268,7 +347,7 @@ export default function PengaturanDataUndangan() {
         if (errGalleries) throw errGalleries;
       }
 
-      // 5. Simpan Kado Digital (gifts_config)
+      // 5. Simpan Kado Digital (gifts_config)[cite: 8]
       const giftPayload = {
         ...(ids.giftId && { id: ids.giftId }),
         bank_name: formData.bank_name || null,
@@ -342,7 +421,7 @@ export default function PengaturanDataUndangan() {
           </Link>
         </div>
 
-        {/* Notifikasi Status Simpan */}
+        {/* Notifikasi Status */}
         {feedback && (
           <div
             className={`px-5 py-3.5 rounded-[2px] border text-xs sm:text-sm mb-8 shadow-[0_10px_25px_rgba(0,0,0,0.45)] ${
@@ -356,7 +435,7 @@ export default function PengaturanDataUndangan() {
         )}
 
         <form onSubmit={handleSave} className="space-y-8">
-          {/* --- 1. DATA MEMPELAI --- */}
+          {/* --- 1. DATA MEMPELAI ---[cite: 8] */}
           <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
             {/* Pria */}
             <div
@@ -384,6 +463,86 @@ export default function PengaturanDataUndangan() {
                   </div>
 
                   <div className="space-y-4">
+                    {/* Upload Foto Mempelai Pria (Visual Dropzone) */}
+                    <div>
+                      <label className={labelClass}>Foto Mempelai Pria</label>
+                      {formData.groom_photo_url ? (
+                        <div className="relative group w-full h-48 rounded-[2px] overflow-hidden border border-[#D4AF37]/60 bg-[#1D0206]">
+                          <img
+                            src={formData.groom_photo_url}
+                            alt="Foto Mempelai Pria"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2.5">
+                            <label className="px-3.5 py-2 bg-[#D4AF37] text-[#2C0409] text-xs font-semibold rounded-[2px] cursor-pointer hover:brightness-110">
+                              {uploadingKey === "groom_photo_url"
+                                ? "Mengunggah..."
+                                : "Ganti Foto"}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={uploadingKey === "groom_photo_url"}
+                                onChange={(e) =>
+                                  handleSingleFileUpload(
+                                    e,
+                                    "groom_photo_url",
+                                    "mempelai"
+                                  )
+                                }
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRemoveSinglePhoto("groom_photo_url")
+                              }
+                              className="px-3 py-2 bg-[#5A0B18] border border-rose-400/50 text-rose-200 text-xs rounded-[2px] hover:bg-rose-800 cursor-pointer"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="w-full h-40 border border-dashed border-[#D4AF37]/55 bg-[#220206]/70 hover:bg-[#35050C]/70 hover:border-[#F4D99B] rounded-[2px] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all">
+                          <svg
+                            className="w-7 h-7 text-[#E6C78C]"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                            />
+                          </svg>
+                          <span className="text-xs font-medium text-[#F4D99B]">
+                            {uploadingKey === "groom_photo_url"
+                              ? "Sedang mengunggah foto..."
+                              : "Klik untuk pilih foto dari galeri"}
+                          </span>
+                          <span className="text-[10px] text-[#F4E3C3]/50">
+                            Format JPG, PNG, atau WEBP
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingKey === "groom_photo_url"}
+                            onChange={(e) =>
+                              handleSingleFileUpload(
+                                e,
+                                "groom_photo_url",
+                                "mempelai"
+                              )
+                            }
+                          />
+                        </label>
+                      )}
+                    </div>
+
                     <div>
                       <label className={labelClass}>Nama Panggilan *</label>
                       <input
@@ -420,19 +579,6 @@ export default function PengaturanDataUndangan() {
                         className={inputClass}
                       />
                     </div>
-                    <div>
-                      <label className={labelClass}>
-                        URL Foto Mempelai Pria
-                      </label>
-                      <input
-                        type="url"
-                        name="groom_photo_url"
-                        value={formData.groom_photo_url}
-                        onChange={handleChange}
-                        placeholder="https://..."
-                        className={inputClass}
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
@@ -464,6 +610,86 @@ export default function PengaturanDataUndangan() {
                   </div>
 
                   <div className="space-y-4">
+                    {/* Upload Foto Mempelai Wanita (Visual Dropzone) */}
+                    <div>
+                      <label className={labelClass}>Foto Mempelai Wanita</label>
+                      {formData.bride_photo_url ? (
+                        <div className="relative group w-full h-48 rounded-[2px] overflow-hidden border border-[#D4AF37]/60 bg-[#1D0206]">
+                          <img
+                            src={formData.bride_photo_url}
+                            alt="Foto Mempelai Wanita"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2.5">
+                            <label className="px-3.5 py-2 bg-[#D4AF37] text-[#2C0409] text-xs font-semibold rounded-[2px] cursor-pointer hover:brightness-110">
+                              {uploadingKey === "bride_photo_url"
+                                ? "Mengunggah..."
+                                : "Ganti Foto"}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={uploadingKey === "bride_photo_url"}
+                                onChange={(e) =>
+                                  handleSingleFileUpload(
+                                    e,
+                                    "bride_photo_url",
+                                    "mempelai"
+                                  )
+                                }
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRemoveSinglePhoto("bride_photo_url")
+                              }
+                              className="px-3 py-2 bg-[#5A0B18] border border-rose-400/50 text-rose-200 text-xs rounded-[2px] hover:bg-rose-800 cursor-pointer"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="w-full h-40 border border-dashed border-[#D4AF37]/55 bg-[#220206]/70 hover:bg-[#35050C]/70 hover:border-[#F4D99B] rounded-[2px] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all">
+                          <svg
+                            className="w-7 h-7 text-[#E6C78C]"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                            />
+                          </svg>
+                          <span className="text-xs font-medium text-[#F4D99B]">
+                            {uploadingKey === "bride_photo_url"
+                              ? "Sedang mengunggah foto..."
+                              : "Klik untuk pilih foto dari galeri"}
+                          </span>
+                          <span className="text-[10px] text-[#F4E3C3]/50">
+                            Format JPG, PNG, atau WEBP
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingKey === "bride_photo_url"}
+                            onChange={(e) =>
+                              handleSingleFileUpload(
+                                e,
+                                "bride_photo_url",
+                                "mempelai"
+                              )
+                            }
+                          />
+                        </label>
+                      )}
+                    </div>
+
                     <div>
                       <label className={labelClass}>Nama Panggilan *</label>
                       <input
@@ -500,26 +726,13 @@ export default function PengaturanDataUndangan() {
                         className={inputClass}
                       />
                     </div>
-                    <div>
-                      <label className={labelClass}>
-                        URL Foto Mempelai Wanita
-                      </label>
-                      <input
-                        type="url"
-                        name="bride_photo_url"
-                        value={formData.bride_photo_url}
-                        onChange={handleChange}
-                        placeholder="https://..."
-                        className={inputClass}
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* --- 2. JADWAL & LOKASI ACARA --- */}
+          {/* --- 2. JADWAL & LOKASI ACARA ---[cite: 8] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
             style={{
@@ -691,7 +904,7 @@ export default function PengaturanDataUndangan() {
             </div>
           </div>
 
-          {/* --- 3. KISAH CINTA --- */}
+          {/* --- 3. KISAH CINTA ---[cite: 8] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
             style={{
@@ -791,7 +1004,7 @@ export default function PengaturanDataUndangan() {
             </div>
           </div>
 
-          {/* --- 4. GALERI FOTO --- */}
+          {/* --- 4. GALERI FOTO (GRID VISUAL TANPA INPUT TEKS LINK) ---[cite: 8] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
             style={{
@@ -810,52 +1023,84 @@ export default function PengaturanDataUndangan() {
                 <div className="flex flex-wrap justify-between items-center gap-3 border-b border-[#D4AF37]/30 pb-3 mb-6">
                   <div>
                     <span className="block text-[9px] tracking-[0.28em] uppercase text-[#E6C78C]/75">
-                      Dokumentasi Momen
+                      Dokumentasi Momen ({formData.galeriFoto.length} Foto)
                     </span>
                     <h2 className="font-serif text-2xl text-[#F2D58E] mt-0.5">
                       Galeri Foto
                     </h2>
                   </div>
-                  <button
-                    type="button"
-                    onClick={addGaleri}
-                    className="px-4 py-1.5 bg-[#35050C] border border-[#D4AF37]/60 text-[#F4D99B] text-xs font-medium rounded-[2px] hover:bg-[#D4AF37] hover:text-[#2C0409] transition-colors cursor-pointer"
+
+                  <label
+                    className="px-5 py-2 text-[#2C0409] text-xs font-semibold rounded-[2px] hover:brightness-105 transition-all cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.4)]"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, #F6E3A6 0%, #D6B142 55%, #B5892A 100%)",
+                      border: "1px solid #FFF2C8",
+                    }}
                   >
-                    + Tambah Foto
-                  </button>
+                    {uploadingKey === "galeri"
+                      ? "Sedang Mengunggah..."
+                      : "+ Pilih & Upload Foto"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      disabled={uploadingKey === "galeri"}
+                      onChange={handleGalleryFilesUpload}
+                    />
+                  </label>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  {formData.galeriFoto.map((foto, index) => (
-                    <div key={index} className="flex items-center gap-2.5">
-                      <span className="bg-[#35050C] border border-[#D4AF37]/45 px-3 py-2.5 rounded-[2px] text-xs text-[#F2D58E] font-serif">
-                        {index + 1}
-                      </span>
-                      <input
-                        type="url"
-                        value={foto}
-                        onChange={(e) =>
-                          handleGaleriChange(index, e.target.value)
-                        }
-                        placeholder="Tautan Foto (URL dari Supabase Storage)"
-                        className={inputClass}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeGaleri(index)}
-                        className="px-3 py-2.5 bg-[#5A0B18]/80 border border-rose-400/30 text-rose-300 hover:bg-rose-800/80 hover:text-white rounded-[2px] text-xs transition-colors cursor-pointer"
-                        title="Hapus Foto"
+                {formData.galeriFoto.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {formData.galeriFoto.map((foto, index) => (
+                      <div
+                        key={index}
+                        className="group relative aspect-[3/4] rounded-[2px] overflow-hidden border border-[#D4AF37]/50 bg-[#1D0206]"
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <img
+                          src={foto}
+                          alt={`Galeri ${index + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <span className="absolute top-2 left-2 px-2 py-0.5 bg-[#220206]/85 border border-[#D4AF37]/50 text-[10px] font-serif text-[#F2D58E] rounded-[2px]">
+                          #{index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeGaleri(index)}
+                          className="absolute top-2 right-2 w-7 h-7 bg-[#5A0B18]/90 border border-rose-400/50 text-rose-200 hover:bg-rose-700 hover:text-white rounded-[2px] flex items-center justify-center text-xs transition-colors cursor-pointer"
+                          title="Hapus Foto"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <label className="w-full py-12 border border-dashed border-[#D4AF37]/45 bg-[#220206]/60 hover:bg-[#35050C]/60 hover:border-[#F4D99B] rounded-[2px] flex flex-col items-center justify-center gap-2 cursor-pointer transition-all">
+                    <span className="text-sm font-serif text-[#F4D99B]">
+                      Belum ada foto galeri
+                    </span>
+                    <span className="text-xs text-[#F4E3C3]/60">
+                      Klik di sini untuk memilih beberapa foto sekaligus
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      disabled={uploadingKey === "galeri"}
+                      onChange={handleGalleryFilesUpload}
+                    />
+                  </label>
+                )}
               </div>
             </div>
           </div>
 
-          {/* --- 5. KADO DIGITAL & ALAMAT KIRIM --- */}
+          {/* --- 5. KADO DIGITAL & ALAMAT KIRIM ---[cite: 8] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
             style={{
@@ -880,7 +1125,7 @@ export default function PengaturanDataUndangan() {
                   </h2>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4 mb-5">
+                <div className="grid md:grid-cols-3 gap-4 mb-6">
                   <div>
                     <label className={labelClass}>Nama Bank / E-Wallet</label>
                     <input
@@ -916,57 +1161,112 @@ export default function PengaturanDataUndangan() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4 mb-5">
+                <div className="grid md:grid-cols-2 gap-6 mb-5">
+                  {/* Upload Gambar QRIS Visual */}
                   <div>
-                    <label className={labelClass}>
-                      URL Gambar QRIS (Opsional)
-                    </label>
-                    <input
-                      type="url"
-                      name="qris_image_url"
-                      value={formData.qris_image_url}
-                      onChange={handleChange}
-                      placeholder="https://..."
-                      className={inputClass}
-                    />
+                    <label className={labelClass}>Gambar QRIS (Opsional)</label>
+                    {formData.qris_image_url ? (
+                      <div className="relative group w-44 h-44 rounded-[2px] overflow-hidden border border-[#D4AF37]/60 bg-[#FAF0DF] p-2">
+                        <img
+                          src={formData.qris_image_url}
+                          alt="Kode QRIS"
+                          className="w-full h-full object-contain"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                          <label className="px-3 py-1.5 bg-[#D4AF37] text-[#2C0409] text-xs font-semibold rounded-[2px] cursor-pointer">
+                            {uploadingKey === "qris_image_url"
+                              ? "Mengunggah..."
+                              : "Ganti QRIS"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingKey === "qris_image_url"}
+                              onChange={(e) =>
+                                handleSingleFileUpload(
+                                  e,
+                                  "qris_image_url",
+                                  "qris"
+                                )
+                              }
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleRemoveSinglePhoto("qris_image_url")
+                            }
+                            className="px-3 py-1 bg-[#5A0B18] border border-rose-400/50 text-rose-200 text-xs rounded-[2px] cursor-pointer"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="w-full h-36 border border-dashed border-[#D4AF37]/50 bg-[#220206]/70 hover:bg-[#35050C]/70 hover:border-[#F4D99B] rounded-[2px] flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all">
+                        <span className="text-xs font-medium text-[#F4D99B]">
+                          {uploadingKey === "qris_image_url"
+                            ? "Mengunggah QRIS..."
+                            : "↑ Klik untuk Upload Gambar QRIS"}
+                        </span>
+                        <span className="text-[10px] text-[#F4E3C3]/50">
+                          Format JPG / PNG
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={uploadingKey === "qris_image_url"}
+                          onChange={(e) =>
+                            handleSingleFileUpload(
+                              e,
+                              "qris_image_url",
+                              "qris"
+                            )
+                          }
+                        />
+                      </label>
+                    )}
                   </div>
-                  <div>
-                    <label className={labelClass}>
-                      Nama Penerima Kado Fisik
-                    </label>
-                    <input
-                      type="text"
-                      name="receiver_name"
-                      value={formData.receiver_name}
-                      onChange={handleChange}
-                      placeholder="Nama Penerima Paket"
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className={labelClass}>
-                    Alamat Pengiriman Kado Fisik
-                  </label>
-                  <textarea
-                    name="receiver_address"
-                    value={formData.receiver_address}
-                    onChange={handleChange}
-                    rows="2"
-                    placeholder="Alamat lengkap pengiriman kado..."
-                    className={`${inputClass} resize-none`}
-                  />
+                  <div className="space-y-4">
+                    <div>
+                      <label className={labelClass}>
+                        Nama Penerima Kado Fisik
+                      </label>
+                      <input
+                        type="text"
+                        name="receiver_name"
+                        value={formData.receiver_name}
+                        onChange={handleChange}
+                        placeholder="Nama Penerima Paket"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>
+                        Alamat Pengiriman Kado Fisik
+                      </label>
+                      <textarea
+                        name="receiver_address"
+                        value={formData.receiver_address}
+                        onChange={handleChange}
+                        rows="3"
+                        placeholder="Alamat lengkap pengiriman kado..."
+                        className={`${inputClass} resize-none`}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* --- TOMBOL SIMPAN MELAYANG --- */}
+          {/* --- TOMBOL SIMPAN MELAYANG ---[cite: 8] */}
           <div className="flex justify-end sticky bottom-6 z-30">
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || uploadingKey !== null}
               className="group relative overflow-hidden inline-flex items-center justify-center gap-2.5 px-8 py-3 text-[#2C0409] font-serif font-semibold tracking-wider text-base rounded-[2px] shadow-[0_12px_30px_rgba(0,0,0,0.75)] hover:shadow-[0_14px_32px_rgba(212,175,55,0.45)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-95 disabled:opacity-50 transition-all duration-300 cursor-pointer"
               style={{
                 background:
