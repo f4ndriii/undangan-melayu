@@ -559,3 +559,188 @@ export function MelayuPhotoFrame({
     </div>
   );
 }
+
+/**
+ * 6. Ikon Tepak Sirih & Taburan Bunga Rampai (Simbol Penyambutan Tamu Adat Melayu)
+ */
+export function TepakSirihOrnament({ className = "w-56 sm:w-64 mx-auto" }) {
+  return (
+    <svg
+      viewBox="0 0 320 135"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="tepakGoldMain" x1="40" y1="10" x2="280" y2="125" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFF2C2" />
+          <stop offset="35%" stopColor="#E2BE5B" />
+          <stop offset="70%" stopColor="#9C7018" />
+          <stop offset="100%" stopColor="#F5DC93" />
+        </linearGradient>
+
+        <linearGradient id="tepakGoldDark" x1="0" y1="30" x2="0" y2="120" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#4A2E07" />
+          <stop offset="100%" stopColor="#261502" />
+        </linearGradient>
+
+        <linearGradient id="sirihLeafGold" x1="120" y1="12" x2="200" y2="62" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFF7D6" />
+          <stop offset="55%" stopColor="#D4AF37" />
+          <stop offset="100%" stopColor="#8C6212" />
+        </linearGradient>
+      </defs>
+
+      {/* --- 1. SUSUNAN DAUN SIRIH MEKAR DI ATAS CERANA --- */}
+      {/* Daun Sirih Belakang Kiri */}
+      <path
+        d="M148 52 C126 46, 114 28, 126 16 C140 22, 150 36, 152 52 Z"
+        fill="url(#sirihLeafGold)"
+        fillOpacity="0.45"
+        stroke="#FFF3C8"
+        strokeWidth="1.1"
+      />
+      {/* Daun Sirih Belakang Kanan */}
+      <path
+        d="M172 52 C194 46, 206 28, 194 16 C180 22, 170 36, 168 52 Z"
+        fill="url(#sirihLeafGold)"
+        fillOpacity="0.45"
+        stroke="#FFF3C8"
+        strokeWidth="1.1"
+      />
+      {/* Daun Sirih Tengah Utama (Tegak) */}
+      <path
+        d="M160 52 C142 38, 144 18, 160 8 C176 18, 178 38, 160 52 Z"
+        fill="url(#sirihLeafGold)"
+        fillOpacity="0.72"
+        stroke="#FFF8DC"
+        strokeWidth="1.3"
+      />
+      {/* Tulang Daun Sirih Tengah */}
+      <path
+        d="M160 12 L160 50 M160 24 L152 19 M160 24 L168 19 M160 34 L150 28 M160 34 L170 28"
+        stroke="#3B2304"
+        strokeWidth="0.9"
+        strokeLinecap="round"
+      />
+
+      {/* --- 2. CEMBUL / COMBOL KIRI & KANAN (WADAH PINANG, KAPUR & GAMBIR) --- */}
+      {/* Cembul Kiri */}
+      <g>
+        <path
+          d="M86 64 L112 64 L109 80 L89 80 Z"
+          fill="url(#tepakGoldMain)"
+          stroke="#FFF3C8"
+          strokeWidth="1"
+        />
+        {/* Tutup Kubah Cembul Kiri */}
+        <path
+          d="M84 64 C84 55, 114 55, 114 64 Z"
+          fill="url(#tepakGoldMain)"
+          stroke="#FFF3C8"
+          strokeWidth="1"
+        />
+        <circle cx="99" cy="54" r="2.2" fill="#FFF3C8" />
+      </g>
+
+      {/* Cembul Kanan */}
+      <g>
+        <path
+          d="M208 64 L234 64 L231 80 L211 80 Z"
+          fill="url(#tepakGoldMain)"
+          stroke="#FFF3C8"
+          strokeWidth="1"
+        />
+        {/* Tutup Kubah Cembul Kanan */}
+        <path
+          d="M206 64 C206 55, 236 55, 236 64 Z"
+          fill="url(#tepakGoldMain)"
+          stroke="#FFF3C8"
+          strokeWidth="1"
+        />
+        <circle cx="221" cy="54" r="2.2" fill="#FFF3C8" />
+      </g>
+
+      {/* --- 3. CERANA / PUAN SIRIH TENGAH BERKAKI --- */}
+      {/* Bibir Mangkuk Cerana */}
+      <path
+        d="M118 52 L202 52 L192 72 L128 72 Z"
+        fill="url(#tepakGoldMain)"
+        stroke="#FFF5CE"
+        strokeWidth="1.2"
+      />
+      {/* Ukiran Pucuk Rebung di Badan Cerana */}
+      <path
+        d="M132 55 L140 69 L148 55 L156 69 L164 55 L172 69 L180 55 L188 69"
+        stroke="url(#tepakGoldDark)"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Leher & Kaki Cerana */}
+      <path
+        d="M148 72 L172 72 L168 81 L152 81 Z"
+        fill="url(#tepakGoldDark)"
+        stroke="url(#tepakGoldMain)"
+        strokeWidth="1"
+      />
+      <path
+        d="M136 88 L148 81 L172 81 L184 88 Z"
+        fill="url(#tepakGoldMain)"
+        stroke="#FFF3C8"
+        strokeWidth="1"
+      />
+
+      {/* --- 4. DULANG / NAMPAN TEPAK SIRIH BERUKIR --- */}
+      <path
+        d="M62 88 L258 88 L246 104 L74 104 Z"
+        fill="url(#tepakGoldDark)"
+        stroke="url(#tepakGoldMain)"
+        strokeWidth="1.4"
+      />
+      {/* Motif Belah Ketupat di Bibir Nampan */}
+      {[86, 108, 130, 152, 174, 196, 218, 236].map((cx) => (
+        <path
+          key={`nampan-${cx}`}
+          d={`M${cx} 91 L${cx + 6} 96 L${cx} 101 L${cx - 6} 96 Z`}
+          stroke="url(#tepakGoldMain)"
+          strokeWidth="1"
+          fill="url(#tepakGoldMain)"
+          fillOpacity="0.25"
+        />
+      ))}
+      {/* Kaki Nampan */}
+      <path
+        d="M84 104 L236 104 L242 110 L78 110 Z"
+        fill="url(#tepakGoldMain)"
+      />
+
+      {/* --- 5. TABURAN BUNGA RAMPAI & BUNGA CENGKIH DI BAWAH --- */}
+      {/* Garis Halus Pengikat */}
+      <line x1="24" y1="120" x2="128" y2="120" stroke="#D4AF37" strokeOpacity="0.55" strokeWidth="0.9" />
+      <line x1="192" y1="120" x2="296" y2="120" stroke="#D4AF37" strokeOpacity="0.55" strokeWidth="0.9" />
+
+      {/* Kelopak Bunga Rampai & Cengkih Melayang Simetris */}
+      <g fill="url(#tepakGoldMain)">
+        {/* Bunga Rampai Tengah */}
+        <path d="M160 113 L164 118 L160 123 L156 118 Z" />
+        <circle cx="160" cy="128" r="1.8" fill="#FFF3C8" />
+
+        {/* Taburan Kiri */}
+        <path d="M142 116 C138 114, 135 118, 139 121 C142 122, 144 119, 142 116 Z" />
+        <path d="M122 123 C118 121, 116 125, 120 127 C123 128, 124 125, 122 123 Z" fillOpacity="0.8" />
+        <path d="M100 115 C96 114, 95 118, 98 120 C101 120, 102 117, 100 115 Z" fillOpacity="0.7" />
+        <circle cx="149" cy="124" r="1.4" fill="#FFF3C8" />
+        <circle cx="111" cy="117" r="1.2" />
+
+        {/* Taburan Kanan */}
+        <path d="M178 116 C182 114, 185 118, 181 121 C178 122, 176 119, 178 116 Z" />
+        <path d="M198 123 C202 121, 204 125, 200 127 C197 128, 196 125, 198 123 Z" fillOpacity="0.8" />
+        <path d="M220 115 C224 114, 225 118, 222 120 C219 120, 218 117, 220 115 Z" fillOpacity="0.7" />
+        <circle cx="171" cy="124" r="1.4" fill="#FFF3C8" />
+        <circle cx="209" cy="117" r="1.2" />
+      </g>
+    </svg>
+  );
+}
