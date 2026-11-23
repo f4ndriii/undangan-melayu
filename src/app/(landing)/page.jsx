@@ -34,8 +34,8 @@ export default function Home() {
         ] = await Promise.all([
           supabase.from("profiles_config").select("*").limit(1).maybeSingle(),
           supabase.from("events").select("*").order("event_date", { ascending: true }),
-          supabase.from("galleries").select("*").order("sort_order", { ascending: true }),
-          supabase.from("love_stories").select("*").order("sort_order", { ascending: true }),
+          supabase.from("galleries").select("*").order("display_order", { ascending: true }),
+          supabase.from("love_stories").select("*").order("display_order", { ascending: true }),
           supabase.from("gifts_config").select("*"),
         ]);
 
