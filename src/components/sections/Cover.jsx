@@ -26,7 +26,7 @@ function GuestNameDisplay() {
   );
 }
 
-export default function Cover({ onOpen, profile, events }) {
+export default function Cover({ onOpen, onBeforeOpen, profile, events }) {
   const [isOpening, setIsOpening] = useState(false);
   const [isOpened, setIsOpened] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -41,6 +41,8 @@ export default function Cover({ onOpen, profile, events }) {
     : "01 Januari 2027";
 
   const handleOpen = () => {
+    if (onBeforeOpen) onBeforeOpen();
+
     setIsOpening(true);
 
     let currentProgress = 0;
@@ -161,6 +163,7 @@ export default function Cover({ onOpen, profile, events }) {
                       </Suspense>
 
                       <button
+                        type="button"
                         onClick={handleOpen}
                         disabled={isOpening}
                         className="group relative overflow-hidden inline-flex items-center justify-center gap-2 px-7 py-2.5 text-[#2C0409] font-serif font-semibold tracking-wider text-sm rounded-[2px] shadow-[0_6px_20px_rgba(0,0,0,0.45)] hover:shadow-[0_10px_25px_rgba(212,175,55,0.45)] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-95 transition-all duration-300 disabled:opacity-0 cursor-pointer"
@@ -256,7 +259,6 @@ export function MelayuPhotoFrame({
   fallbackInitial = "M",
   className = "w-60 sm:w-64 mx-auto",
 }) {
-  // ID unik untuk clipPath agar tidak bentrok antara bingkai Pria & Wanita
   const clipId = `melayu-arch-${altText.replace(/[^a-zA-Z0-9]/g, "")}`;
 
   return (
@@ -268,7 +270,6 @@ export function MelayuPhotoFrame({
         className="w-full h-auto drop-shadow-[0_20px_38px_rgba(0,0,0,0.72)]"
       >
         <defs>
-          {/* Gradasi Emas Metalik 3D */}
           <linearGradient id="frameGoldMain" x1="0" y1="0" x2="300" y2="390" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#FFF0BD" />
             <stop offset="28%" stopColor="#E2BE5B" />
@@ -289,14 +290,11 @@ export function MelayuPhotoFrame({
             <stop offset="100%" stopColor="#FFF2C2" />
           </linearGradient>
 
-          {/* ClipPath Bentuk Kubah Meruncing Melayu (Ogee Arch) untuk Foto */}
           <clipPath id={clipId}>
             <path d="M150 68 C178 96, 244 106, 244 176 L244 334 L56 334 L56 176 C56 106, 122 96, 150 68 Z" />
           </clipPath>
         </defs>
 
-        {/* --- 1. PUNCAK MAHKOTA PUCUK REBUNG --- */}
-        {/* Pucuk Rebung Tengah Utama */}
         <path
           d="M150 6 L168 38 L150 54 L132 38 Z"
           fill="url(#frameGoldMain)"
@@ -312,7 +310,6 @@ export function MelayuPhotoFrame({
           fill="url(#frameGoldHighlight)"
         />
 
-        {/* Pucuk Rebung Pengapit Kiri & Kanan */}
         <path
           d="M126 24 L136 45 L122 52 L114 38 Z"
           fill="url(#frameGoldMain)"
@@ -326,8 +323,6 @@ export function MelayuPhotoFrame({
           strokeWidth="0.9"
         />
 
-        {/* --- 2. BADAN BINGKAI UTAMA (OGEE ARCH + ALAS) --- */}
-        {/* Siluet Luar Bingkai Emas */}
         <path
           d="M150 42 C188 78, 272 90, 272 174 L272 342 L280 342 L280 378 L20 378 L20 342 L28 342 L28 174 C28 90, 112 78, 150 42 Z"
           fill="url(#frameGoldMain)"
@@ -335,27 +330,22 @@ export function MelayuPhotoFrame({
           strokeWidth="1.4"
         />
 
-        {/* Ceruk Ukiran Gelap (Memberi Efek Pahatan Timbul 3D) */}
         <path
           d="M150 52 C183 84, 260 96, 260 175 L260 338 L40 338 L40 175 C40 96, 117 84, 150 52 Z"
           fill="url(#frameGoldDark)"
         />
 
-        {/* --- 3. UKIRAN SULUR AWAN LARAT TIMBUL DI SEPANJANG LENGKUNG & PILAR --- */}
         <g stroke="url(#frameGoldHighlight)" strokeWidth="2.1" strokeLinecap="round" fill="none">
-          {/* Sulur Kubah Atas Kiri */}
           <path d="M146 60 C130 68, 126 84, 138 86 C146 87, 148 79, 142 78" />
           <path d="M124 72 C104 76, 94 94, 108 100 C116 103, 121 94, 114 91" />
           <path d="M94 92 C72 100, 62 122, 78 128 C87 131, 92 121, 84 118" />
           <path d="M68 122 C48 134, 44 156, 58 160 C66 162, 70 152, 62 150" />
 
-          {/* Sulur Kubah Atas Kanan */}
           <path d="M154 60 C170 68, 174 84, 162 86 C154 87, 152 79, 158 78" />
           <path d="M176 72 C196 76, 206 94, 192 100 C184 103, 179 94, 186 91" />
           <path d="M206 92 C228 100, 238 122, 222 128 C213 131, 208 121, 216 118" />
           <path d="M232 122 C252 134, 256 156, 242 160 C234 162, 230 152, 238 150" />
 
-          {/* Sulur Pilar Vertikal Kiri (Berulang ke Bawah) */}
           {[172, 206, 240, 274, 306].map((y) => (
             <g key={`left-${y}`}>
               <path
@@ -365,7 +355,6 @@ export function MelayuPhotoFrame({
             </g>
           ))}
 
-          {/* Sulur Pilar Vertikal Kanan (Berulang ke Bawah) */}
           {[172, 206, 240, 274, 306].map((y) => (
             <g key={`right-${y}`}>
               <path
@@ -376,7 +365,6 @@ export function MelayuPhotoFrame({
           ))}
         </g>
 
-        {/* --- 4. LIS DALAM KUBAH (PEMBATAS FOTO) --- */}
         <path
           d="M150 64 C180 93, 248 104, 248 176 L248 336 L52 336 L52 176 C52 104, 120 93, 150 64 Z"
           fill="url(#frameGoldMain)"
@@ -384,7 +372,6 @@ export function MelayuPhotoFrame({
           strokeWidth="1"
         />
 
-        {/* --- 5. AREA FOTO MEMPELAI (TERPOTONG RAPI SESUAI KUBAH) --- */}
         <g clipPath={`url(#${clipId})`}>
           <rect x="52" y="64" width="196" height="274" fill="#1E0206" />
           {photoUrl ? (
@@ -423,7 +410,6 @@ export function MelayuPhotoFrame({
               </text>
             </g>
           )}
-          {/* Bayangan Vignette Halus di Tepi Dalam Bingkai */}
           <rect
             x="52"
             y="270"
@@ -434,7 +420,6 @@ export function MelayuPhotoFrame({
           />
         </g>
 
-        {/* Garis Emas Tipis Mengelilingi Foto */}
         <path
           d="M150 68 C178 96, 244 106, 244 176 L244 334 L56 334 L56 176 C56 106, 122 96, 150 68 Z"
           stroke="#FFF3C8"
@@ -442,7 +427,6 @@ export function MelayuPhotoFrame({
           fill="none"
         />
 
-        {/* --- 6. PANEL ALAS BAWAH MOTIF SONGKET BELAH KETUPAT & PUCUK REBUNG --- */}
         <rect
           x="26"
           y="346"
@@ -453,7 +437,6 @@ export function MelayuPhotoFrame({
           strokeWidth="1"
         />
 
-        {/* Deret Motif Belah Ketupat Songket di Alas Bawah */}
         {[42, 66, 90, 114, 138, 162, 186, 210, 234, 258].map((cx) => (
           <g key={`songket-${cx}`}>
             <path
@@ -467,7 +450,6 @@ export function MelayuPhotoFrame({
           </g>
         ))}
 
-        {/* Kaki Sudut Bawah Kiri & Kanan */}
         <rect x="18" y="373" width="264" height="5" rx="1" fill="url(#frameGoldMain)" />
       </svg>
     </div>
