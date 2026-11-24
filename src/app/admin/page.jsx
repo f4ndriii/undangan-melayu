@@ -2,11 +2,11 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import MelayuPattern from "@/components/ui/MelayuPattern";
 
-// Mematikan caching agar data selalu real-time setiap kali halaman dimuat ulang[cite: 2]
+// Mematikan caching agar data selalu real-time setiap kali halaman dimuat ulang
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  // Mengambil data tamu dan ucapan dari Supabase[cite: 2]
+  // Mengambil data tamu dan ucapan dari Supabase
   const { data: guests } = await supabase
     .from("guests")
     .select("*")
@@ -24,11 +24,11 @@ export default async function AdminDashboard() {
 
   return (
     <main className="relative min-h-full p-5 sm:p-8 lg:p-10 font-sans text-[#FAF0DF] overflow-hidden">
-      {/* Tekstur Songket Halus[cite: 2] */}
+      {/* Tekstur Songket Halus */}
       <MelayuPattern className="opacity-[0.04] pointer-events-none" />
 
       <div className="relative z-10 max-w-6xl mx-auto">
-        {/* Header Halaman[cite: 2] */}
+        {/* Header Halaman */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 mb-8 border-b border-[#D4AF37]/30">
           <div>
             <span className="block text-[9px] sm:text-[10px] tracking-[0.35em] uppercase text-[#E6C78C]/80 font-medium mb-1.5">
@@ -40,9 +40,9 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* Ringkasan Statistik[cite: 2] */}
+        {/* Ringkasan Statistik */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-10">
-          {/* Kartu 1: Total RSVP Hadir[cite: 2] */}
+          {/* Kartu 1: Total RSVP Hadir */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_14px_35px_rgba(0,0,0,0.5)]"
             style={{
@@ -79,7 +79,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          {/* Kartu 2: Total RSVP Tidak Hadir[cite: 2] */}
+          {/* Kartu 2: Total RSVP Tidak Hadir */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_14px_35px_rgba(0,0,0,0.5)]"
             style={{
@@ -116,7 +116,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          {/* Kartu 3: Total Ucapan[cite: 2] */}
+          {/* Kartu 3: Total Ucapan */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_14px_35px_rgba(0,0,0,0.5)]"
             style={{
@@ -154,9 +154,9 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* Grid 2 Kolom: Daftar RSVP & Daftar Ucapan[cite: 2] */}
+        {/* Grid 2 Kolom: Daftar RSVP & Daftar Ucapan */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Tabel RSVP[cite: 2] */}
+          {/* Tabel RSVP */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_18px_45px_rgba(0,0,0,0.55)]"
             style={{
@@ -186,10 +186,10 @@ export default async function AdminDashboard() {
                   </span>
                 </div>
 
-                <div className="overflow-x-auto max-h-[430px] overflow-y-auto pr-1">
+                <div className="overflow-x-auto max-h-[430px] overflow-y-auto pr-2">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-[#D4AF37]/35 text-[10px] tracking-[0.2em] uppercase text-[#E6C78C]/85">
+                      <tr className="sticky top-0 z-10 bg-[#32040B] border-b border-[#D4AF37]/35 text-[10px] tracking-[0.2em] uppercase text-[#E6C78C]/85">
                         <th className="py-3 px-3 font-medium">Nama</th>
                         <th className="py-3 px-3 font-medium">Alamat</th>
                         <th className="py-3 px-3 font-medium text-right">Status</th>
@@ -211,12 +211,18 @@ export default async function AdminDashboard() {
                             <td className="py-3.5 px-3 text-right whitespace-nowrap">
                               <span
                                 className={`inline-block px-3 py-0.5 rounded-full text-[10px] tracking-wider uppercase border ${
-                                  guest.is_attending
+                                  guest.is_attending === true
                                     ? "bg-[#0F4642]/80 text-[#8CE0C8] border-[#D4AF37]/45"
-                                    : "bg-[#5A0B18]/80 text-rose-200 border-rose-400/35"
+                                    : guest.is_attending === false
+                                    ? "bg-[#5A0B18]/80 text-rose-200 border-rose-400/35"
+                                    : "bg-[#220206] text-[#E6C78C]/85 border-[#D4AF37]/40"
                                 }`}
                               >
-                                {guest.is_attending ? "Hadir" : "Tidak Hadir"}
+                                {guest.is_attending === true
+                                  ? "Hadir"
+                                  : guest.is_attending === false
+                                  ? "Tidak Hadir"
+                                  : "Masih Ragu"}
                               </span>
                             </td>
                           </tr>
@@ -238,7 +244,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          {/* Daftar Ucapan & Doa[cite: 2] */}
+          {/* Daftar Ucapan & Doa */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_18px_45px_rgba(0,0,0,0.55)]"
             style={{
@@ -271,7 +277,7 @@ export default async function AdminDashboard() {
                   </Link>
                 </div>
 
-                <div className="flex flex-col gap-3.5 max-h-[430px] overflow-y-auto pr-1">
+                <div className="flex flex-col gap-3.5 max-h-[430px] overflow-y-auto pr-2">
                   {wishes?.length > 0 ? (
                     wishes.map((wish) => (
                       <div

@@ -14,3 +14,29 @@
   --font-sans: var(--font-lato), sans-serif;
   --font-serif: var(--font-playfair), serif;
 }
+
+/* Custom Scrollbar Royal Burgundy & Emas */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.45) rgba(34, 2, 6, 0.55);
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(34, 2, 6, 0.65);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #E6C78C 0%, #B5892A 100%);
+  border-radius: 9999px;
+  border: 1px solid rgba(43, 4, 10, 0.6);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #F6E3A6 0%, #D4AF37 100%);
+}
