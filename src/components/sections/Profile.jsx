@@ -6,40 +6,45 @@ import {
   MelayuCornerOrnament,
 } from "@/components/ui/MelayuOrnaments";
 
-function formatParentText(rolePrefix, fatherName, motherName) {
-  const father = fatherName?.trim();
-  const mother = motherName?.trim();
-
-  if (father && mother) {
-    return `${rolePrefix} dari Bapak ${father} & Ibu ${mother}`;
-  }
-  if (father) {
-    return `${rolePrefix} dari Bapak ${father}`;
-  }
-  if (mother) {
-    return `${rolePrefix} dari Ibu ${mother}`;
-  }
-  return `${rolePrefix} dari Bapak Fulan & Ibu Fulanah`;
+function formatSingleParent(prefix, rawName, fallback) {
+  const clean = rawName?.trim();
+  if (!clean) return fallback;
+  // Mencegah duplikasi kata "Bapak" atau "Ibu" jika terlanjur diketik di form
+  const regex = new RegExp(`^${prefix}\\s+`, "i");
+  return `${prefix} ${clean.replace(regex, "")}`;
 }
 
 function CoupleCard({
   roleLabel,
+  rolePrefix,
   fullName,
-  parentInfo,
+  fatherName,
+  motherName,
   instagram,
   photoUrl,
   delay = 0,
 }) {
+  const formattedFather = formatSingleParent(
+    "Bapak",
+    fatherName,
+    "Bapak Fulan"
+  );
+  const formattedMother = formatSingleParent(
+    "Ibu",
+    motherName,
+    "Ibu Fulanah"
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.8, delay }}
-      className="flex flex-col items-center text-center w-full max-w-[330px] mx-auto"
+      className="flex flex-col items-center text-center w-full max-w-[360px] mx-auto"
     >
       {/* Bingkai Foto Ukuran Besar */}
-      <div className="mb-2.5 transition-transform duration-500 hover:scale-[1.02]">
+      <div className="mb-3 transition-transform duration-500 hover:scale-[1.02]">
         <MelayuPhotoFrame
           photoUrl={photoUrl}
           altText={fullName}
@@ -49,19 +54,23 @@ function CoupleCard({
       </div>
 
       {/* Label Mempelai */}
-      <span className="font-sans text-[9px] sm:text-[10px] tracking-[0.3em] uppercase text-[#E6C78C]/85 font-medium mb-0.5">
+      <span className="font-sans text-[9px] sm:text-[10px] tracking-[0.3em] uppercase text-[#E6C78C]/85 font-medium mb-1">
         {roleLabel}
       </span>
 
       {/* Nama Lengkap Mempelai */}
-      <h3 className="font-serif font-normal text-xl sm:text-2xl text-[#FAF0DF] leading-tight tracking-wide mb-1">
+      <h3 className="font-serif font-normal text-xl sm:text-2xl text-[#FAF0DF] leading-snug tracking-wide mb-2 text-balance">
         {fullName}
       </h3>
 
-      {/* Keterangan Putra/Putri Dari */}
-      <p className="font-sans font-light text-xs text-[#F4E3C3]/80 leading-snug max-w-[260px] mb-1.5">
-        {parentInfo}
-      </p>
+      {/* Keterangan Putra/Putri Dari (Tertata 3 Baris Simetris) */}
+      <div className="font-sans font-light text-xs text-[#F4E3C3]/80 leading-relaxed mb-2 space-y-0.5">
+        <span className="block text-[11px] text-[#E6C78C]/75 tracking-wide">
+          {rolePrefix} dari
+        </span>
+        <span className="block">{formattedFather} &amp;</span>
+        <span className="block">{formattedMother}</span>
+      </div>
 
       {/* Tautan Instagram */}
       {instagram && (
@@ -80,28 +89,18 @@ function CoupleCard({
 
 export default function Profile({ profile }) {
   const groomFullName = profile?.groom_full_name || "Nama Lengkap Mempelai Pria";
-  const groomParents = formatParentText(
-    "Putra",
-    profile?.groom_father_name,
-    profile?.groom_mother_name
-  );
   const groomPhoto = profile?.groom_photo_url || "";
   const groomIg = profile?.groom_instagram || "";
 
   const brideFullName =
     profile?.bride_full_name || "Nama Lengkap Mempelai Wanita";
-  const brideParents = formatParentText(
-    "Putri",
-    profile?.bride_father_name,
-    profile?.bride_mother_name
-  );
   const bridePhoto = profile?.bride_photo_url || "";
   const brideIg = profile?.bride_instagram || "";
 
   return (
     <section
       id="profile"
-      className="min-h-dvh w-full flex flex-col items-center justify-center py-6 sm:py-8 px-4 sm:px-6 overflow-hidden border-t border-[#D4AF37]/20 relative"
+      className="min-h-dvh w-full flex flex-col items-center justify-center py-8 sm:py-10 px-4 sm:px-6 overflow-hidden border-t border-[#D4AF37]/20 relative"
       style={{
         background:
           "radial-gradient(circle at center, #4A0813 0%, #31040B 70%, #220206 100%)",
@@ -119,7 +118,7 @@ export default function Profile({ profile }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="text-center mb-4 sm:mb-6"
+          className="text-center mb-5 sm:mb-7"
         >
           <span className="block font-sans text-[9px] sm:text-[10px] tracking-[0.35em] uppercase text-[#E6C78C]/80 font-medium mb-0.5">
             Mempelai Berbahagia
@@ -133,8 +132,10 @@ export default function Profile({ profile }) {
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-6 md:gap-4">
           <CoupleCard
             roleLabel="Mempelai Pria"
+            rolePrefix="Putra"
             fullName={groomFullName}
-            parentInfo={groomParents}
+            fatherName={profile?.groom_father_name}
+            motherName={profile?.groom_mother_name}
             instagram={groomIg}
             photoUrl={groomPhoto}
             delay={0.1}
@@ -158,8 +159,10 @@ export default function Profile({ profile }) {
 
           <CoupleCard
             roleLabel="Mempelai Wanita"
+            rolePrefix="Putri"
             fullName={brideFullName}
-            parentInfo={brideParents}
+            fatherName={profile?.bride_father_name}
+            motherName={profile?.bride_mother_name}
             instagram={brideIg}
             photoUrl={bridePhoto}
             delay={0.25}
