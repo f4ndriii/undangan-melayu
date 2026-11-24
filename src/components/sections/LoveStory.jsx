@@ -2,6 +2,24 @@
 import { motion } from "framer-motion";
 import MelayuPattern from "@/components/ui/MelayuPattern";
 
+// Format tanggal kisah menjadi Bulan & Tahun (misal: "2023-10-01" atau "2023-10" -> "Oktober 2023")
+function formatStoryMonthYear(rawDate) {
+  if (!rawDate) return "";
+  const match = String(rawDate).match(/^(\d{4})-(\d{2})/);
+  if (match) {
+    const year = Number(match[1]);
+    const monthIndex = Number(match[2]) - 1;
+    const dateObj = new Date(year, monthIndex, 1);
+    if (!Number.isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleDateString("id-ID", {
+        month: "long",
+        year: "numeric",
+      });
+    }
+  }
+  return String(rawDate);
+}
+
 export default function LoveStory({ stories = [] }) {
   // Fallback kisah jika tabel love_stories di Supabase belum diisi
   const displayStories =
@@ -10,28 +28,28 @@ export default function LoveStory({ stories = [] }) {
       : [
           {
             id: "story-1",
-            year: "2022",
+            story_date: "Oktober 2022",
             title: "Awal Pertemuan",
             description:
               "Berawal dari pertemuan sederhana yang tak terduga, percakapan singkat perlahan menumbuhkan rasa nyaman dan saling memahami satu sama lain.",
           },
           {
             id: "story-2",
-            year: "2024",
+            story_date: "Juni 2024",
             title: "Menjalin Komitmen",
             description:
               "Setelah melalui berbagai musim bersama, kami menyadari bahwa langkah ke depan akan jauh lebih bermakna jika ditempuh beriringan dengan niat yang tulus.",
           },
           {
             id: "story-3",
-            year: "2026",
+            story_date: "Agustus 2026",
             title: "Khithbah & Lamaran",
             description:
               "Dengan memohon ridha Allah SWT serta restu kedua orang tua, dua keluarga dipertemukan untuk mengikat janji suci menuju jenjang pernikahan.",
           },
           {
             id: "story-4",
-            year: "2027",
+            story_date: "Januari 2027",
             title: "Walimatul Urus",
             description:
               "Hari yang dinantikan pun tiba—awal babak baru bagi kami untuk membangun keluarga yang sakinah, mawaddah, warahmah.",
@@ -82,7 +100,9 @@ export default function LoveStory({ stories = [] }) {
           <div className="space-y-10 sm:space-y-12">
             {displayStories.map((story, idx) => {
               const isEven = idx % 2 === 0;
-              const yearLabel = story.year || story.date_label || "";
+              const rawDate =
+                story.story_date || story.year || story.date_label || "";
+              const periodLabel = formatStoryMonthYear(rawDate);
               const storyTitle = story.title || "Babak Kisah";
               const storyDesc =
                 story.description || story.content || story.story || "";
@@ -132,9 +152,9 @@ export default function LoveStory({ stories = [] }) {
                         <div className="w-3 h-3 border-b border-r border-[#D4AF37]/60 absolute bottom-2 right-2" />
 
                         <div className="relative z-10">
-                          {yearLabel && (
+                          {periodLabel && (
                             <span className="inline-block font-sans text-[10px] tracking-[0.28em] uppercase text-[#E6C78C] font-medium mb-1.5">
-                              {yearLabel}
+                              {periodLabel}
                             </span>
                           )}
 
