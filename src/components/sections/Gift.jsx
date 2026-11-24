@@ -8,7 +8,8 @@ function BankCard({ gift }) {
 
   const bankName = gift?.bank_name || "Bank Syariah Indonesia (BSI)";
   const accountNumber = gift?.account_number || "1234567890";
-  const accountHolder = gift?.account_holder || "Nama Pemilik Rekening";
+  const accountHolder =
+    gift?.account_owner || gift?.account_holder || "Nama Pemilik Rekening";
 
   const handleCopy = async () => {
     try {
@@ -137,13 +138,13 @@ export default function Gift({ gifts = [] }) {
             id: "gift-1",
             bank_name: "Bank Syariah Indonesia (BSI)",
             account_number: "7123456789",
-            account_holder: "Nama Mempelai Pria",
+            account_owner: "Nama Mempelai Pria",
           },
           {
             id: "gift-2",
             bank_name: "Bank Central Asia (BCA)",
             account_number: "8901234567",
-            account_holder: "Nama Mempelai Wanita",
+            account_owner: "Nama Mempelai Wanita",
           },
         ];
 
@@ -158,20 +159,28 @@ export default function Gift({ gifts = [] }) {
     "";
   const qrisName =
     qrisItem?.qris_name ||
+    qrisItem?.account_owner ||
     qrisItem?.account_holder ||
     "QRIS Walimatul Urus";
 
   // 3. Data Alamat Pengiriman Hadiah Fisik
   const physicalGift = giftList.find(
-    (g) => g.shipping_address || g.address || g.recipient_address
+    (g) =>
+      g.receiver_address ||
+      g.shipping_address ||
+      g.address ||
+      g.recipient_address
   );
   const shippingAddress =
+    physicalGift?.receiver_address ||
     physicalGift?.shipping_address ||
     physicalGift?.address ||
     physicalGift?.recipient_address ||
     "Jl. Raya Utama No. 1, Kelurahan Simpang Baru, Kec. Tampan, Kota Pekanbaru, Riau 28293";
   const recipientName =
+    physicalGift?.receiver_name ||
     physicalGift?.recipient_name ||
+    physicalGift?.account_owner ||
     physicalGift?.account_holder ||
     "Kediaman Kedua Mempelai";
   const recipientPhone =
