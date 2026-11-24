@@ -3,6 +3,20 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import MelayuPattern from "@/components/ui/MelayuPattern";
 
+// Mengekstrak jam mulai (HH:MM:SS) dari string seperti "08:30 - 10:30 WIB" atau "08.00 WIB"
+function extractStartTime(event) {
+  if (event?.start_time) return event.start_time;
+  if (event?.event_time) {
+    const match = String(event.event_time).match(/(\d{1,2})[:.](\d{2})/);
+    if (match) {
+      const hh = match[1].padStart(2, "0");
+      const mm = match[2];
+      return `${hh}:${mm}:00`;
+    }
+  }
+  return "08:00:00";
+}
+
 function CountdownBox({ value, label }) {
   return (
     <div className="flex flex-col items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-[2px] border border-[#D4AF37]/60 bg-[#2B040A]/80 shadow-[0_8px_20px_rgba(0,0,0,0.45)]">
@@ -18,6 +32,7 @@ function CountdownBox({ value, label }) {
 
 function EventCard({ event, index }) {
   const title =
+    event?.title ||
     event?.event_name ||
     (event?.event_type === "akad" ? "Akad Nikah" : "Resepsi Pernikahan");
 
@@ -30,16 +45,22 @@ function EventCard({ event, index }) {
       })
     : "Sabtu, 01 Januari 2027";
 
-  const timeRange =
-    event?.start_time && event?.end_time
-      ? `${event.start_time.slice(0, 5)} – ${event.end_time.slice(0, 5)} WIB`
-      : event?.start_time
-      ? `${event.start_time.slice(0, 5)} WIB – Selesai`
-      : "08.00 WIB – Selesai";
+  const timeRange = event?.event_time
+    ? event.event_time
+    : event?.start_time && event?.end_time
+    ? `${event.start_time.slice(0, 5)} – ${event.end_time.slice(0, 5)} WIB`
+    : event?.start_time
+    ? `${event.start_time.slice(0, 5)} WIB – Selesai`
+    : "08.00 WIB – Selesai";
 
-  const venueName = event?.venue_name || "Gedung Serbaguna / Kediaman Mempelai";
+  const venueName =
+    event?.location_name ||
+    event?.venue_name ||
+    "Gedung Serbaguna / Kediaman Mempelai";
   const venueAddress =
-    event?.venue_address || "Jl. Raya Utama No. 1, Kota Pekanbaru, Riau";
+    event?.location_address ||
+    event?.venue_address ||
+    "Jl. Raya Utama No. 1, Kota Pekanbaru, Riau";
   const mapsUrl = event?.maps_url || "";
 
   return (
@@ -174,23 +195,21 @@ export default function Event({ events = [] }) {
           {
             id: "default-akad",
             event_type: "akad",
-            event_name: "Akad Nikah",
+            title: "Akad Nikah",
             event_date: "2027-01-01",
-            start_time: "08:00:00",
-            end_time: "10:00:00",
-            venue_name: "Masjid Raya An-Nur",
-            venue_address: "Jl. Hangtuah, Pekanbaru, Riau",
+            event_time: "08:00 - 10:00 WIB",
+            location_name: "Masjid Raya An-Nur",
+            location_address: "Jl. Hangtuah, Pekanbaru, Riau",
             maps_url: "https://maps.google.com",
           },
           {
             id: "default-resepsi",
             event_type: "resepsi",
-            event_name: "Resepsi Pernikahan",
+            title: "Resepsi Pernikahan",
             event_date: "2027-01-01",
-            start_time: "11:00:00",
-            end_time: "15:00:00",
-            venue_name: "Balai Adat Melayu Riau",
-            venue_address: "Jl. Diponegoro No. 26, Pekanbaru, Riau",
+            event_time: "11:00 - 15:00 WIB",
+            location_name: "Balai Adat Melayu Riau",
+            location_address: "Jl. Diponegoro No. 26, Pekanbaru, Riau",
             maps_url: "https://maps.google.com",
           },
         ];
@@ -201,7 +220,7 @@ export default function Event({ events = [] }) {
   useEffect(() => {
     if (!primaryEvent?.event_date) return;
 
-    const timePart = primaryEvent.start_time || "08:00:00";
+    const timePart = extractStartTime(primaryEvent);
     const targetDate = new Date(`${primaryEvent.event_date}T${timePart}`).getTime();
 
     const updateCountdown = () => {
