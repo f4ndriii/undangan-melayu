@@ -2,11 +2,11 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import MelayuPattern from "@/components/ui/MelayuPattern";
 
-// Mematikan caching agar data selalu real-time setiap kali halaman dimuat ulang
+// Mematikan caching agar data selalu real-time setiap kali halaman dimuat ulang[cite: 2]
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  // Mengambil data tamu dan ucapan dari Supabase
+  // Mengambil data tamu dan ucapan dari Supabase[cite: 2]
   const { data: guests } = await supabase
     .from("guests")
     .select("*")
@@ -24,11 +24,11 @@ export default async function AdminDashboard() {
 
   return (
     <main className="relative min-h-full p-5 sm:p-8 lg:p-10 font-sans text-[#FAF0DF] overflow-hidden">
-      {/* Tekstur Songket Halus */}
+      {/* Tekstur Songket Halus[cite: 2] */}
       <MelayuPattern className="opacity-[0.04] pointer-events-none" />
 
       <div className="relative z-10 max-w-6xl mx-auto">
-        {/* Header Halaman */}
+        {/* Header Halaman[cite: 2] */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 mb-8 border-b border-[#D4AF37]/30">
           <div>
             <span className="block text-[9px] sm:text-[10px] tracking-[0.35em] uppercase text-[#E6C78C]/80 font-medium mb-1.5">
@@ -40,9 +40,9 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* Ringkasan Statistik */}
+        {/* Ringkasan Statistik[cite: 2] */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-10">
-          {/* Kartu 1: Total RSVP Hadir */}
+          {/* Kartu 1: Total RSVP Hadir[cite: 2] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_14px_35px_rgba(0,0,0,0.5)]"
             style={{
@@ -79,7 +79,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          {/* Kartu 2: Total RSVP Tidak Hadir */}
+          {/* Kartu 2: Total RSVP Tidak Hadir[cite: 2] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_14px_35px_rgba(0,0,0,0.5)]"
             style={{
@@ -116,7 +116,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          {/* Kartu 3: Total Ucapan */}
+          {/* Kartu 3: Total Ucapan[cite: 2] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_14px_35px_rgba(0,0,0,0.5)]"
             style={{
@@ -154,9 +154,9 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* Grid 2 Kolom: Daftar RSVP & Daftar Ucapan */}
+        {/* Grid 2 Kolom: Daftar RSVP & Daftar Ucapan[cite: 2] */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Tabel RSVP */}
+          {/* Tabel RSVP[cite: 2] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_18px_45px_rgba(0,0,0,0.55)]"
             style={{
@@ -238,7 +238,7 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
-          {/* Daftar Ucapan & Doa */}
+          {/* Daftar Ucapan & Doa[cite: 2] */}
           <div
             className="p-[2px] rounded-[2px] shadow-[0_18px_45px_rgba(0,0,0,0.55)]"
             style={{
@@ -263,9 +263,12 @@ export default async function AdminDashboard() {
                       Daftar Ucapan &amp; Doa
                     </h2>
                   </div>
-                  <span className="px-3 py-1 bg-[#220206] border border-[#D4AF37]/40 rounded-full text-[10px] tracking-wider uppercase text-[#E6C78C]">
-                    {wishes?.length || 0} Ucapan
-                  </span>
+                  <Link
+                    href="/admin/ucapan"
+                    className="px-3 py-1 bg-[#220206] hover:bg-[#3A050D] border border-[#D4AF37]/45 rounded-full text-[10px] tracking-wider uppercase text-[#E6C78C] transition-colors"
+                  >
+                    Kelola ({wishes?.length || 0}) →
+                  </Link>
                 </div>
 
                 <div className="flex flex-col gap-3.5 max-h-[430px] overflow-y-auto pr-1">

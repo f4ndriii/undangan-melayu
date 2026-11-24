@@ -112,6 +112,76 @@ export default function KelolaTamu() {
     }
   };
 
+  // Helper ikon status kehadiran tamu
+  const renderAttendanceIcon = (isAttending) => {
+    if (isAttending === true) {
+      return (
+        <span
+          title="Konfirmasi: Hadir"
+          className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#0F4642] border border-[#D4AF37]/60 text-[#8CE0C8] shrink-0"
+        >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 12.75l6 6 9-13.5"
+            />
+          </svg>
+        </span>
+      );
+    }
+
+    if (isAttending === false) {
+      return (
+        <span
+          title="Konfirmasi: Tidak Hadir"
+          className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#5A0B18] border border-rose-400/50 text-rose-300 shrink-0"
+        >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </span>
+      );
+    }
+
+    return (
+      <span
+        title="Belum Mengonfirmasi Kehadiran"
+        className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#220206] border border-[#D4AF37]/40 text-[#E6C78C]/75 shrink-0"
+      >
+        <svg
+          className="w-3 h-3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      </span>
+    );
+  };
+
   const filteredGuests = guests.filter(
     (g) =>
       g.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -287,7 +357,10 @@ export default function KelolaTamu() {
                               className="hover:bg-[#4A0813]/55 transition-colors"
                             >
                               <td className="py-3.5 px-3 font-serif text-base sm:text-lg text-[#FAF0DF]">
-                                {guest.name}
+                                <div className="flex items-center gap-2.5">
+                                  {renderAttendanceIcon(guest.is_attending)}
+                                  <span>{guest.name}</span>
+                                </div>
                               </td>
                               <td className="py-3.5 px-3 text-xs text-[#F4E3C3]/75">
                                 {guest.address || "-"}

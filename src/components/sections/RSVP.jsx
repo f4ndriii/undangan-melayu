@@ -24,14 +24,20 @@ function RSVPForm({ onSubmitted }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!guestName.trim() || !message.trim()) return;
+    if (!guestName.trim() || !address.trim()) return;
 
     setIsSubmitting(true);
     setStatusFeedback(null);
 
     const trimmedName = guestName.trim();
     const trimmedAddress = address.trim();
-    const isAttending = attendance === "hadir";
+    const trimmedMessage = message.trim();
+    const isAttending =
+      attendance === "hadir"
+        ? true
+        : attendance === "tidak_hadir"
+        ? false
+        : null;
 
     try {
       // 1. Cek apakah nama tamu sudah terdaftar di tabel 'guests' (case-insensitive)
@@ -45,12 +51,12 @@ function RSVPForm({ onSubmitted }) {
       if (checkError) throw checkError;
 
       if (existingGuest) {
-        // Jika sudah ada -> UPDATE status kehadiran & alamat (jika diisi)
+        // Jika sudah ada -> UPDATE status kehadiran & alamat
         const { error: updateError } = await supabase
           .from("guests")
           .update({
             is_attending: isAttending,
-            address: trimmedAddress || existingGuest.address || "-",
+            address: trimmedAddress,
           })
           .eq("id", existingGuest.id);
 
@@ -60,7 +66,7 @@ function RSVPForm({ onSubmitted }) {
         const { error: insertError } = await supabase.from("guests").insert([
           {
             name: trimmedName,
-            address: trimmedAddress || "-",
+            address: trimmedAddress,
             is_attending: isAttending,
           },
         ]);
@@ -68,25 +74,33 @@ function RSVPForm({ onSubmitted }) {
         if (insertError) throw insertError;
       }
 
-      // 2. Tetap tambahkan untaian doa baru ke tabel 'wishes'
-      const { data: wishData, error: wishError } = await supabase
-        .from("wishes")
-        .insert([
-          {
-            sender_name: trimmedName,
-            message: message.trim(),
-          },
-        ])
-        .select()
-        .single();
+      // 2. Simpan ke tabel 'wishes' hanya jika tamu mengisi ucapan
+      let wishData = null;
+      if (trimmedMessage) {
+        const { data, error: wishError } = await supabase
+          .from("wishes")
+          .insert([
+            {
+              sender_name: trimmedName,
+              message: trimmedMessage,
+            },
+          ])
+          .select()
+          .single();
 
-      if (wishError) throw wishError;
+        if (wishError) throw wishError;
+        wishData = data;
+      }
 
       setStatusFeedback({
         type: "success",
-        text: existingGuest
-          ? "Terima kasih, status kehadiran Anda telah diperbarui dan doa restu telah ditambahkan."
-          : "Terima kasih, konfirmasi kehadiran dan doa restu Anda telah tercatat.",
+        text: trimmedMessage
+          ? existingGuest
+            ? "Terima kasih, status kehadiran Anda telah diperbarui dan doa restu telah ditambahkan."
+            : "Terima kasih, konfirmasi kehadiran dan doa restu Anda telah tercatat."
+          : existingGuest
+          ? "Terima kasih, konfirmasi kehadiran Anda telah diperbarui."
+          : "Terima kasih, konfirmasi kehadiran Anda telah tercatat.",
       });
       setMessage("");
       setAddress("");
@@ -100,7 +114,7 @@ function RSVPForm({ onSubmitted }) {
       console.error("Gagal mengirim RSVP:", err);
       setStatusFeedback({
         type: "error",
-        text: "Maaf, terjadi kendala saat mengirim ucapan: " + err.message,
+        text: "Maaf, terjadi kendala saat mengirim konfirmasi: " + err.message,
       });
     } finally {
       setIsSubmitting(false);
@@ -111,7 +125,7 @@ function RSVPForm({ onSubmitted }) {
     <form onSubmit={handleSubmit} className="space-y-5 text-left">
       <div>
         <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
-          Nama Lengkap
+          Nama Lengkap <span className="text-[#F4D99B]">*</span>
         </label>
         <input
           type="text"
@@ -126,10 +140,11 @@ function RSVPForm({ onSubmitted }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
-            Alamat / Instansi
+            Alamat / Instansi <span className="text-[#F4D99B]">*</span>
           </label>
           <input
             type="text"
+            required
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Contoh: Pekanbaru / Rekan Kerja"
@@ -148,17 +163,20 @@ function RSVPForm({ onSubmitted }) {
           >
             <option value="hadir">InsyaAllah Hadir</option>
             <option value="tidak_hadir">Maaf, Berhalangan Hadir</option>
+            <option value="ragu">Masih Ragu</option>
           </select>
         </div>
       </div>
 
       <div>
         <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
-          Ucapan &amp; Doa Restu
+          Ucapan &amp; Doa Restu{" "}
+          <span className="normal-case tracking-normal text-[#F4E3C3]/50">
+            (Opsional)
+          </span>
         </label>
         <textarea
           rows={4}
-          required
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Tuliskan doa terbaik untuk kedua mempelai..."
@@ -255,7 +273,7 @@ export default function RSVP() {
         );
         return {
           ...w,
-          is_attending: matchedGuest ? matchedGuest.is_attending : null,
+          is_attending: matchedGuest ? matchedGuest.is_attending : undefined,
         };
       });
 
@@ -411,15 +429,21 @@ export default function RSVP() {
                         <span className="font-serif font-medium text-base sm:text-lg text-[#FAF0DF]">
                           {item.sender_name}
                         </span>
-                        {item.is_attending !== null && (
+                        {item.is_attending !== undefined && (
                           <span
                             className={`px-2.5 py-0.5 text-[9px] font-sans tracking-[0.15em] uppercase border rounded-full ${
-                              item.is_attending
+                              item.is_attending === true
                                 ? "bg-[#0F4642] text-[#F4D99B] border-[#D4AF37]/50"
-                                : "bg-[#4A0813] text-[#F4E3C3]/75 border-[#D4AF37]/30"
+                                : item.is_attending === false
+                                ? "bg-[#4A0813] text-[#F4E3C3]/75 border-[#D4AF37]/30"
+                                : "bg-[#220206] text-[#E6C78C]/85 border-[#D4AF37]/40"
                             }`}
                           >
-                            {item.is_attending ? "Hadir" : "Berhalangan"}
+                            {item.is_attending === true
+                              ? "Hadir"
+                              : item.is_attending === false
+                              ? "Berhalangan"
+                              : "Masih Ragu"}
                           </span>
                         )}
                       </div>
