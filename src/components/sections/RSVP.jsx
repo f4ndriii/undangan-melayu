@@ -13,24 +13,51 @@ function RSVPForm({ onSubmitted }) {
 
   const [guestName, setGuestName] = useState(initialGuest);
   const [address, setAddress] = useState("");
+  const [isLocked, setIsLocked] = useState(false);
   const [attendance, setAttendance] = useState("hadir");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState(null);
 
   useEffect(() => {
-    if (initialGuest) setGuestName(initialGuest);
+    const loadInvitedGuest = async () => {
+      if (!initialGuest.trim()) {
+        setIsLocked(false);
+        return;
+      }
+
+      const trimmedParam = initialGuest.trim();
+      setGuestName(trimmedParam);
+      setIsLocked(true);
+
+      // Ambil alamat/instansi tamu yang sudah didaftarkan admin dari tabel 'guests'
+      const { data, error } = await supabase
+        .from("guests")
+        .select("name, address")
+        .ilike("name", trimmedParam)
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        setGuestName(data.name);
+        setAddress(data.address && data.address !== "-" ? data.address : "-");
+      } else {
+        setAddress("-");
+      }
+    };
+
+    loadInvitedGuest();
   }, [initialGuest]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!guestName.trim() || !address.trim()) return;
+    if (!guestName.trim() || (!isLocked && !address.trim())) return;
 
     setIsSubmitting(true);
     setStatusFeedback(null);
 
     const trimmedName = guestName.trim();
-    const trimmedAddress = address.trim();
+    const trimmedAddress = address.trim() || "-";
     const trimmedMessage = message.trim();
     const isAttending =
       attendance === "hadir"
@@ -51,12 +78,14 @@ function RSVPForm({ onSubmitted }) {
       if (checkError) throw checkError;
 
       if (existingGuest) {
-        // Jika sudah ada -> UPDATE status kehadiran & alamat
+        // Jika sudah ada -> UPDATE status kehadiran (dan alamat hanya jika tidak dikunci)
         const { error: updateError } = await supabase
           .from("guests")
           .update({
             is_attending: isAttending,
-            address: trimmedAddress,
+            address: isLocked
+              ? existingGuest.address || trimmedAddress
+              : trimmedAddress,
           })
           .eq("id", existingGuest.id);
 
@@ -103,7 +132,9 @@ function RSVPForm({ onSubmitted }) {
           : "Terima kasih, konfirmasi kehadiran Anda telah tercatat.",
       });
       setMessage("");
-      setAddress("");
+      if (!isLocked) {
+        setAddress("");
+      }
       if (onSubmitted && wishData) {
         onSubmitted({
           ...wishData,
@@ -124,16 +155,43 @@ function RSVPForm({ onSubmitted }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5 text-left">
       <div>
-        <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85 mb-2">
-          Nama Lengkap <span className="text-[#F4D99B]">*</span>
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block font-sans text-[10px] tracking-[0.22em] uppercase text-[#E6C78C]/85">
+            Nama Lengkap <span className="text-[#F4D99B]">*</span>
+          </label>
+          {isLocked && (
+            <span className="inline-flex items-center gap-1 font-sans text-[9px] tracking-[0.15em] uppercase text-[#E6C78C]/65">
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                />
+              </svg>
+              Terisi Otomatis
+            </span>
+          )}
+        </div>
         <input
           type="text"
           required
+          readOnly={isLocked}
           value={guestName}
-          onChange={(e) => setGuestName(e.target.value)}
+          onChange={(e) => {
+            if (!isLocked) setGuestName(e.target.value);
+          }}
           placeholder="Masukkan nama Anda"
-          className="w-full px-4 py-3 bg-[#220206]/85 border border-[#D4AF37]/45 rounded-[2px] font-sans text-sm text-[#FAF0DF] placeholder:text-[#F4E3C3]/35 focus:outline-none focus:border-[#F4D99B] transition-colors"
+          className={`w-full px-4 py-3 border rounded-[2px] font-sans text-sm transition-colors ${
+            isLocked
+              ? "bg-[#1A0104]/90 border-[#D4AF37]/30 text-[#E6C78C]/85 cursor-not-allowed select-none focus:outline-none"
+              : "bg-[#220206]/85 border-[#D4AF37]/45 text-[#FAF0DF] placeholder:text-[#F4E3C3]/35 focus:outline-none focus:border-[#F4D99B]"
+          }`}
         />
       </div>
 
@@ -145,10 +203,17 @@ function RSVPForm({ onSubmitted }) {
           <input
             type="text"
             required
+            readOnly={isLocked}
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            onChange={(e) => {
+              if (!isLocked) setAddress(e.target.value);
+            }}
             placeholder="Contoh: Pekanbaru / Rekan Kerja"
-            className="w-full h-[46px] px-4 bg-[#220206]/85 border border-[#D4AF37]/45 rounded-[2px] font-sans text-sm text-[#FAF0DF] placeholder:text-[#F4E3C3]/35 focus:outline-none focus:border-[#F4D99B] transition-colors"
+            className={`w-full h-[46px] px-4 border rounded-[2px] font-sans text-sm transition-colors ${
+              isLocked
+                ? "bg-[#1A0104]/90 border-[#D4AF37]/30 text-[#E6C78C]/85 cursor-not-allowed select-none focus:outline-none"
+                : "bg-[#220206]/85 border-[#D4AF37]/45 text-[#FAF0DF] placeholder:text-[#F4E3C3]/35 focus:outline-none focus:border-[#F4D99B]"
+            }`}
           />
         </div>
 
