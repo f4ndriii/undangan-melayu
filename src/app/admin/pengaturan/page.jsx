@@ -4,6 +4,13 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import MelayuPattern from "@/components/ui/MelayuPattern";
 
+// Helper menormalisasi format tanggal lama (YYYY-MM-DD) menjadi YYYY-MM untuk <input type="month" />
+function toMonthInputValue(val) {
+  if (!val) return "";
+  const match = String(val).match(/^(\d{4}-\d{2})/);
+  return match ? match[1] : val;
+}
+
 export default function PengaturanDataUndangan() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -122,7 +129,10 @@ export default function PengaturanDataUndangan() {
 
           kisahCinta:
             stories?.length > 0
-              ? stories
+              ? stories.map((s) => ({
+                  ...s,
+                  story_date: toMonthInputValue(s.story_date),
+                }))
               : [{ story_date: "", title: "", description: "" }],
           galeriFoto:
             galleries?.length > 0 ? galleries.map((g) => g.image_url) : [],
@@ -148,7 +158,7 @@ export default function PengaturanDataUndangan() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- HELPER UPLOAD KE SUPABASE STORAGE (Bucket: undangan-media) ---
+  // --- HELPER UPLOAD KE SUPABASE STORAGE (Bucket: wedding_assets) ---
   const uploadToSupabase = async (file, folder = "general") => {
     const fileExt = file.name.split(".").pop();
     const fileName = `${folder}/${Date.now()}-${Math.random()
@@ -186,7 +196,7 @@ export default function PengaturanDataUndangan() {
       setFeedback({
         type: "error",
         text:
-          "Gagal mengunggah foto (pastikan bucket 'undangan-media' sudah dibuat & Public): " +
+          "Gagal mengunggah foto (pastikan bucket 'wedding_assets' sudah dibuat & Public): " +
           err.message,
       });
     } finally {
@@ -225,7 +235,7 @@ export default function PengaturanDataUndangan() {
       setFeedback({
         type: "error",
         text:
-          "Gagal mengunggah galeri (pastikan bucket 'undangan-media' sudah dibuat & Public): " +
+          "Gagal mengunggah galeri (pastikan bucket 'wedding_assets' sudah dibuat & Public): " +
           err.message,
       });
     } finally {
@@ -323,7 +333,10 @@ export default function PengaturanDataUndangan() {
       const validStories = formData.kisahCinta
         .filter((s) => s.title && s.story_date)
         .map((s, idx) => ({
-          story_date: s.story_date,
+          // Jika kolom story_date bertipe DATE di Postgres, simpan sebagai YYYY-MM-01 agar aman di semua tipe kolom (DATE maupun TEXT)
+          story_date: /^\d{4}-\d{2}$/.test(s.story_date)
+            ? `${s.story_date}-01`
+            : s.story_date,
           title: s.title,
           description: s.description || "",
           display_order: idx + 1,
@@ -462,7 +475,7 @@ export default function PengaturanDataUndangan() {
                   </div>
 
                   <div className="space-y-4">
-                    {/* Upload Foto Mempelai Pria (Visual Dropzone) */}
+                    {/* Upload Foto Mempelai Pria */}
                     <div>
                       <label className={labelClass}>Foto Mempelai Pria</label>
                       {formData.groom_photo_url ? (
@@ -623,7 +636,7 @@ export default function PengaturanDataUndangan() {
                   </div>
 
                   <div className="space-y-4">
-                    {/* Upload Foto Mempelai Wanita (Visual Dropzone) */}
+                    {/* Upload Foto Mempelai Wanita */}
                     <div>
                       <label className={labelClass}>Foto Mempelai Wanita</label>
                       {formData.bride_photo_url ? (
@@ -634,7 +647,6 @@ export default function PengaturanDataUndangan() {
                             className="w-full h-full object-cover object-top"
                           />
                           <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                            {/* ... tombol Ganti Foto & Hapus tetap sama ... */}
                             <label className="px-3.5 py-2 bg-[#D4AF37] text-[#2C0409] text-xs font-semibold rounded-[2px] cursor-pointer hover:brightness-110">
                               {uploadingKey === "bride_photo_url"
                                 ? "Mengunggah..."
@@ -982,9 +994,11 @@ export default function PengaturanDataUndangan() {
 
                       <div className="grid md:grid-cols-2 gap-4 mb-3 pr-20">
                         <div>
-                          <label className={labelClass}>Tanggal Momen *</label>
+                          <label className={labelClass}>
+                            Bulan &amp; Tahun *
+                          </label>
                           <input
-                            type="date"
+                            type="month"
                             value={kisah.story_date}
                             onChange={(e) =>
                               handleKisahChange(
